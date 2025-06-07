@@ -1,5 +1,5 @@
 """
-Modulo principale per la registrazione di immagini multibanda usando SLIC avanzato
+Main module for multiband image registration using advanced SLIC
 """
 
 import numpy as np
@@ -25,36 +25,36 @@ from metadata_utils import MetadataManager
 
 class ImageRegistration:
     """
-    Classe avanzata per la registrazione di immagini multibanda usando SLIC,
-    feature matching e trasformazioni affini robuste
+    Advanced class for multiband image registration using SLIC,
+    feature matching and robust affine transformations
     """
 
     def __init__(self, n_segments: int = 1000, compactness: float = 10.0,
                  sigma: float = 1.0, reference_band: int = 1,
                  registration_method: str = 'hybrid', preserve_metadata: bool = True):
         """
-        Inizializza il registratore di immagini avanzato
+        Initialize advanced image registration
 
         Args:
-            n_segments: Numero di superpixel per SLIC
-            compactness: Parametro di compattezza per SLIC
-            sigma: Sigma per il filtro gaussiano pre-processing
-            reference_band: Banda di riferimento (1-5)
+            n_segments: Number of superpixels for SLIC
+            compactness: Compactness parameter for SLIC
+            sigma: Sigma for Gaussian filter pre-processing
+            reference_band: Reference band (1-5)
             registration_method: 'slic', 'features', 'hybrid', 'phase'
-            preserve_metadata: Se preservare i metadati geospaziali
+            preserve_metadata: Whether to preserve geospatial metadata
         """
         self.n_segments = n_segments
         self.compactness = compactness
         self.sigma = sigma
-        self.reference_band = reference_band - 1  # Converti a 0-based indexing
+        self.reference_band = reference_band - 1  # Convert to 0-based indexing
         self.registration_method = registration_method
         self.preserve_metadata = preserve_metadata
 
-        # Parametri per feature detection
+        # Parameters for feature detection
         self.orb = cv2.ORB_create(nfeatures=1000)
         self.matcher = cv2.BFMatcher(cv2.NORM_HAMMING, crossCheck=True)
 
-        # Manager per metadati
+        # Metadata manager
         self.metadata_manager = MetadataManager() if preserve_metadata else None
 
         # Setup logging
@@ -63,26 +63,26 @@ class ImageRegistration:
     
     def preprocess_image(self, image: np.ndarray, enhance_contrast: bool = True) -> np.ndarray:
         """
-        Pre-processing avanzato dell'immagine
+        Advanced image pre-processing
 
         Args:
-            image: Immagine di input
-            enhance_contrast: Se applicare enhancement del contrasto
+            image: Input image
+            enhance_contrast: Whether to apply contrast enhancement
 
         Returns:
-            Immagine pre-processata
+            Pre-processed image
         """
-        # Normalizza a 0-1
+        # Normalize to 0-1
         img_norm = (image - image.min()) / (image.max() - image.min() + 1e-8)
 
-        # Enhancement del contrasto usando CLAHE
+        # Contrast enhancement using CLAHE
         if enhance_contrast:
             img_uint8 = (img_norm * 255).astype(np.uint8)
             clahe = cv2.createCLAHE(clipLimit=2.0, tileGridSize=(8,8))
             img_enhanced = clahe.apply(img_uint8)
             img_norm = img_enhanced.astype(np.float32) / 255.0
 
-        # Applica filtro gaussiano per ridurre il rumore
+        # Apply Gaussian filter to reduce noise
         if self.sigma > 0:
             img_smooth = gaussian(img_norm, sigma=self.sigma, preserve_range=True)
         else:
@@ -95,18 +95,18 @@ class ImageRegistration:
         Calcola i superpixel usando SLIC
 
         Args:
-            image: Immagine di input
+            image: Image di input
 
         Returns:
             Mappa dei segmenti
         """
-        # Converti a uint8 per SLIC se necessario
+        # Convert to uint8 for SLIC if necessary
         if image.dtype != np.uint8:
             img_uint8 = (image * 255).astype(np.uint8)
         else:
             img_uint8 = image
 
-        # Applica SLIC
+        # Apply SLIC
         segments = slic(img_uint8, n_segments=self.n_segments,
                        compactness=self.compactness, sigma=self.sigma,
                        start_label=1)
@@ -118,7 +118,7 @@ class ImageRegistration:
         Estrae features dai superpixel SLIC
 
         Args:
-            image: Immagine di input
+            image: Image di input
             segments: Mappa dei segmenti SLIC
 
         Returns:
@@ -132,16 +132,16 @@ class ImageRegistration:
             if np.sum(mask) < 10:  # Ignora segmenti troppo piccoli
                 continue
 
-            # Calcola centroide
+            # Calculate centroid
             y_coords, x_coords = np.where(mask)
             centroid = (np.mean(y_coords), np.mean(x_coords))
 
-            # Calcola statistiche intensità
+            # Calculate intensity statistics
             intensities = image[mask]
             mean_intensity = np.mean(intensities)
             std_intensity = np.std(intensities)
 
-            # Calcola area e perimetro
+            # Calculate area and perimeter
             area = np.sum(mask)
 
             features[seg_id] = {
@@ -159,8 +159,8 @@ class ImageRegistration:
         Rileva e matcha features usando ORB
 
         Args:
-            ref_img: Immagine di riferimento
-            target_img: Immagine target
+            ref_img: Image di riferimento
+            target_img: Image target
 
         Returns:
             Tuple di punti matched (ref_points, target_points)
@@ -224,11 +224,11 @@ class ImageRegistration:
     
     def register_slic_based(self, ref_img: np.ndarray, target_img: np.ndarray) -> Optional[np.ndarray]:
         """
-        Registrazione basata su matching di superpixel SLIC
+        Registration basata su matching di superpixel SLIC
 
         Args:
-            ref_img: Immagine di riferimento
-            target_img: Immagine target
+            ref_img: Image di riferimento
+            target_img: Image target
 
         Returns:
             Matrice di trasformazione o None
@@ -275,8 +275,8 @@ class ImageRegistration:
         Stima shift usando phase cross-correlation migliorata
 
         Args:
-            reference: Immagine di riferimento
-            target: Immagine da allineare
+            reference: Image di riferimento
+            target: Image da allineare
 
         Returns:
             Tuple (shift_y, shift_x)
@@ -305,11 +305,11 @@ class ImageRegistration:
         Applica trasformazione affine a un'immagine
 
         Args:
-            image: Immagine di input
+            image: Image di input
             transform_matrix: Matrice di trasformazione 2x3
 
         Returns:
-            Immagine trasformata
+            Image trasformata
         """
         if transform_matrix is None:
             return image
@@ -329,9 +329,9 @@ class ImageRegistration:
         Registra una singola banda usando il metodo specificato
 
         Args:
-            ref_img: Immagine di riferimento pre-processata
-            target_img: Immagine target pre-processata
-            original_target: Immagine target originale
+            ref_img: Image di riferimento pre-processata
+            target_img: Image target pre-processata
+            original_target: Image target originale
 
         Returns:
             Tuple (immagine registrata, metodo utilizzato)
@@ -375,11 +375,11 @@ class ImageRegistration:
             Tuple (bande registrate, metadati, matrici di registrazione)
         """
         if not validate_image_group(band_paths):
-            raise ValueError(f"Gruppo di immagini non valido: {band_paths}")
+            raise ValueError(f"Image group non valido: {band_paths}")
 
-        self.logger.info(f"Caricamento di {len(band_paths)} bande...")
+        self.logger.info(f"Loading di {len(band_paths)} bande...")
 
-        # Carica tutte le bande con o senza metadati
+        # Load all bands con o senza metadati
         bands = []
         metadata_list = []
 
@@ -414,21 +414,21 @@ class ImageRegistration:
                     pass  # Se fallisce, usa l'immagine processata normale
 
             processed_bands.append(processed)
-            self.logger.info(f"Pre-processing banda {i+1} completato")
+            self.logger.info(f"Pre-processing band {i+1} completed")
 
-        self.logger.info(f"Usando banda {self.reference_band + 1} come riferimento")
-        self.logger.info(f"Metodo di registrazione: {self.registration_method}")
+        self.logger.info(f"Using band {self.reference_band + 1} as reference")
+        self.logger.info(f"Method di registrazione: {self.registration_method}")
 
-        # Registra ogni banda rispetto al riferimento
+        # Register each band to reference
         registered_bands = []
         registration_matrices = []
 
         for i, processed_band in enumerate(processed_bands):
             if i == self.reference_band:
-                # La banda di riferimento rimane invariata
+                # Reference band remains unchanged
                 registered_bands.append(bands[i])
                 registration_matrices.append(None)  # Nessuna trasformazione
-                self.logger.info(f"Banda {i+1}: riferimento (nessuna trasformazione)")
+                self.logger.info(f"Band {i+1}: reference (no transformation)")
             else:
                 # Registra la banda
                 registered, method = self.register_single_band(
@@ -441,30 +441,30 @@ class ImageRegistration:
                 # per restituire anche la matrice di trasformazione
                 registration_matrices.append(None)  # TODO: implementare estrazione matrice
 
-                self.logger.info(f"Banda {i+1}: registrata usando {method}")
+                self.logger.info(f"Band {i+1}: registered using {method}")
 
         return registered_bands, metadata_list, registration_matrices
     
     def process_image_group(self, band_paths: List[str], output_path: str) -> bool:
         """
-        Processa un singolo gruppo di immagini
+        Processa un singolo image group
 
         Args:
             band_paths: Lista dei percorsi delle bande
-            output_path: Percorso del file di output
+            output_path: Percorso del output file
 
         Returns:
-            True se il processing è riuscito
+            True se il processing è successful
         """
         try:
-            # Registra le bande
+            # Register bands
             registered_bands, metadata_list, registration_matrices = self.register_bands(band_paths)
 
-            # Salva il risultato con o senza metadati
+            # Save result con o senza metadati
             if self.preserve_metadata and metadata_list and metadata_list[self.reference_band]:
                 # Salva con metadati preservati
-                band_descriptions = [f"Banda {i+1} registrata" for i in range(len(registered_bands))]
-                band_descriptions[self.reference_band] = f"Banda {self.reference_band+1} (riferimento)"
+                band_descriptions = [f"Band {i+1} registrata" for i in range(len(registered_bands))]
+                band_descriptions[self.reference_band] = f"Band {self.reference_band+1} (riferimento)"
 
                 save_multiband_tiff_with_metadata(
                     registered_bands,
@@ -482,5 +482,5 @@ class ImageRegistration:
             return True
 
         except Exception as e:
-            self.logger.error(f"Errore nel processing di {band_paths}: {str(e)}")
+            self.logger.error(f"Error nel processing di {band_paths}: {str(e)}")
             return False

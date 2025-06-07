@@ -1,5 +1,5 @@
 """
-Modulo di utilità per la registrazione di immagini multibanda
+Utility module for multiband image registration
 """
 
 import os
@@ -15,16 +15,16 @@ from metadata_utils import MetadataManager
 
 def find_image_groups(input_path: str) -> Dict[str, List[str]]:
     """
-    Trova e raggruppa le immagini per base name (IMG_xxxx_1.tif, IMG_xxxx_2.tif, etc.)
-    
+    Find and group images by base name (IMG_xxxx_1.tif, IMG_xxxx_2.tif, etc.)
+
     Args:
-        input_path: Percorso della cartella o lista di file
-        
+        input_path: Path to folder or list of files
+
     Returns:
-        Dizionario con base_name come chiave e lista di percorsi file come valore
+        Dictionary with base_name as key and list of file paths as value
     """
     if os.path.isfile(input_path):
-        # Se è un singolo file, assumiamo che sia parte di un gruppo
+        # If it's a single file, assume it's part of a group
         base_dir = os.path.dirname(input_path)
         filename = os.path.basename(input_path)
         base_name = extract_base_name(filename)
@@ -33,12 +33,12 @@ def find_image_groups(input_path: str) -> Dict[str, List[str]]:
             files = sorted(glob.glob(pattern))
             return {base_name: files}
         return {}
-    
+
     elif os.path.isdir(input_path):
-        # Cerca tutti i file .tif nella cartella
+        # Search for all .tif files in the folder
         pattern = os.path.join(input_path, "IMG_*_*.tif")
         all_files = glob.glob(pattern)
-        
+
         groups = {}
         for file_path in all_files:
             filename = os.path.basename(file_path)
@@ -47,11 +47,11 @@ def find_image_groups(input_path: str) -> Dict[str, List[str]]:
                 if base_name not in groups:
                     groups[base_name] = []
                 groups[base_name].append(file_path)
-        
-        # Ordina i file in ogni gruppo
+
+        # Sort files in each group
         for base_name in groups:
             groups[base_name] = sorted(groups[base_name])
-            
+
         return groups
     
     return {}
@@ -59,13 +59,13 @@ def find_image_groups(input_path: str) -> Dict[str, List[str]]:
 
 def extract_base_name(filename: str) -> Optional[str]:
     """
-    Estrae il nome base da un filename tipo IMG_xxxx_1.tif
-    
+    Extract base name from filename like IMG_xxxx_1.tif
+
     Args:
-        filename: Nome del file
-        
+        filename: File name
+
     Returns:
-        Nome base (es. IMG_1234) o None se non corrisponde al pattern
+        Base name (e.g. IMG_1234) or None if doesn't match pattern
     """
     pattern = r'(IMG_\d+)_\d+\.tif'
     match = re.match(pattern, filename)
@@ -76,22 +76,22 @@ def extract_base_name(filename: str) -> Optional[str]:
 
 def load_image_band(file_path: str) -> np.ndarray:
     """
-    Carica una singola banda da file TIFF (versione legacy senza metadati)
+    Load a single band from TIFF file (legacy version without metadata)
 
     Args:
-        file_path: Percorso del file
+        file_path: File path
 
     Returns:
-        Array numpy dell'immagine
+        Numpy array of the image
     """
     try:
-        # Prova prima con tifffile
+        # Try with tifffile first
         img = tifffile.imread(file_path)
         if img.ndim == 3 and img.shape[2] == 1:
             img = img.squeeze(axis=2)
         return img.astype(np.float32)
     except:
-        # Fallback con PIL
+        # Fallback with PIL
         img = Image.open(file_path)
         img_array = np.array(img).astype(np.float32)
         if img_array.ndim == 3 and img_array.shape[2] == 1:
@@ -101,13 +101,13 @@ def load_image_band(file_path: str) -> np.ndarray:
 
 def load_image_band_with_metadata(file_path: str) -> Tuple[np.ndarray, Dict]:
     """
-    Carica una singola banda da file TIFF preservando i metadati
+    Load a single band from TIFF file preserving metadata
 
     Args:
-        file_path: Percorso del file
+        file_path: File path
 
     Returns:
-        Tuple (array numpy dell'immagine, metadati)
+        Tuple (numpy array of image, metadata)
     """
     metadata_manager = MetadataManager()
     return metadata_manager.load_image_with_metadata(file_path)
@@ -115,16 +115,16 @@ def load_image_band_with_metadata(file_path: str) -> Tuple[np.ndarray, Dict]:
 
 def save_multiband_tiff(bands: List[np.ndarray], output_path: str) -> None:
     """
-    Salva multiple bande in un singolo file TIFF (versione legacy senza metadati)
+    Save multiple bands to a single TIFF file (legacy version without metadata)
 
     Args:
-        bands: Lista di array numpy rappresentanti le bande
-        output_path: Percorso del file di output
+        bands: List of numpy arrays representing bands
+        output_path: Output file path
     """
-    # Stack delle bande lungo l'asse 0 (primo asse)
+    # Stack bands along axis 0 (first axis)
     multiband_image = np.stack(bands, axis=0)
 
-    # Salva usando tifffile
+    # Save using tifffile
     tifffile.imwrite(output_path, multiband_image, photometric='minisblack')
 
 
@@ -134,14 +134,14 @@ def save_multiband_tiff_with_metadata(bands: List[np.ndarray],
                                     band_descriptions: List[str] = None,
                                     registration_matrices: List[np.ndarray] = None) -> None:
     """
-    Salva multiple bande in un singolo file TIFF preservando i metadati
+    Save multiple bands to a single TIFF file preserving metadata
 
     Args:
-        bands: Lista di array numpy rappresentanti le bande
-        output_path: Percorso del file di output
-        reference_metadata: Metadati della banda di riferimento
-        band_descriptions: Descrizioni per ogni banda
-        registration_matrices: Matrici di registrazione applicate
+        bands: List of numpy arrays representing bands
+        output_path: Output file path
+        reference_metadata: Reference band metadata
+        band_descriptions: Descriptions for each band
+        registration_matrices: Applied registration matrices
     """
     metadata_manager = MetadataManager()
     metadata_manager.save_multiband_with_metadata(
@@ -152,44 +152,44 @@ def save_multiband_tiff_with_metadata(bands: List[np.ndarray],
 
 def validate_image_group(file_paths: List[str]) -> bool:
     """
-    Valida che un gruppo di immagini sia completo (5 bande)
-    
+    Validate that an image group is complete (5 bands)
+
     Args:
-        file_paths: Lista dei percorsi dei file
-        
+        file_paths: List of file paths
+
     Returns:
-        True se il gruppo è valido
+        True if the group is valid
     """
     if len(file_paths) != 5:
         return False
-    
-    # Verifica che tutti i file esistano
+
+    # Verify that all files exist
     for path in file_paths:
         if not os.path.exists(path):
             return False
-    
-    # Verifica che i numeri delle bande siano 1,2,3,4,5
+
+    # Verify that band numbers are 1,2,3,4,5
     band_numbers = []
     for path in file_paths:
         filename = os.path.basename(path)
         match = re.search(r'_(\d+)\.tif$', filename)
         if match:
             band_numbers.append(int(match.group(1)))
-    
+
     expected_bands = {1, 2, 3, 4, 5}
     return set(band_numbers) == expected_bands
 
 
 def create_output_filename(base_name: str, output_dir: str) -> str:
     """
-    Crea il nome del file di output
+    Create output file name
 
     Args:
-        base_name: Nome base (es. IMG_1234)
-        output_dir: Cartella di output
+        base_name: Base name (e.g. IMG_1234)
+        output_dir: Output directory
 
     Returns:
-        Percorso completo del file di output
+        Complete output file path
     """
     output_filename = f"{base_name}_registered.tif"
     return os.path.join(output_dir, output_filename)
@@ -197,14 +197,14 @@ def create_output_filename(base_name: str, output_dir: str) -> str:
 
 def check_already_processed(base_name: str, output_dir: str) -> bool:
     """
-    Controlla se un gruppo di immagini è già stato processato
+    Check if an image group has already been processed
 
     Args:
-        base_name: Nome base del gruppo (es. IMG_1234)
-        output_dir: Cartella di output
+        base_name: Group base name (e.g. IMG_1234)
+        output_dir: Output directory
 
     Returns:
-        True se il file di output esiste già
+        True if output file already exists
     """
     output_path = create_output_filename(base_name, output_dir)
     return os.path.exists(output_path)
@@ -212,13 +212,13 @@ def check_already_processed(base_name: str, output_dir: str) -> bool:
 
 def find_processed_groups(output_dir: str) -> set:
     """
-    Trova tutti i gruppi già processati nella cartella di output
+    Find all groups already processed in the output directory
 
     Args:
-        output_dir: Cartella di output
+        output_dir: Output directory
 
     Returns:
-        Set dei nomi base già processati
+        Set of base names already processed
     """
     if not os.path.exists(output_dir):
         return set()
@@ -228,7 +228,7 @@ def find_processed_groups(output_dir: str) -> set:
 
     for file_path in glob.glob(pattern):
         filename = os.path.basename(file_path)
-        # Estrai il nome base da "IMG_xxxx_registered.tif"
+        # Extract base name from "IMG_xxxx_registered.tif"
         match = re.match(r'(.+)_registered\.tif$', filename)
         if match:
             base_name = match.group(1)
@@ -239,14 +239,14 @@ def find_processed_groups(output_dir: str) -> set:
 
 def get_resume_info(input_groups: Dict[str, List[str]], output_dir: str) -> Tuple[Dict[str, List[str]], Dict[str, List[str]]]:
     """
-    Separa i gruppi da processare da quelli già completati
+    Separate groups to process from those already completed
 
     Args:
-        input_groups: Dizionario dei gruppi di input
-        output_dir: Cartella di output
+        input_groups: Dictionary of input groups
+        output_dir: Output directory
 
     Returns:
-        Tuple (gruppi_da_processare, gruppi_già_completati)
+        Tuple (groups_to_process, groups_already_completed)
     """
     processed_groups = find_processed_groups(output_dir)
 

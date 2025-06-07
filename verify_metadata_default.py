@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+# !/usr/bin/env python3
 """
 Script semplice per verificare che i metadati vengano preservati di default
 """
@@ -49,7 +49,7 @@ def create_simple_test_images(output_dir: str, base_name: str = "IMG_0001") -> l
 
 def test_default_behavior():
     """Test che i metadati vengano preservati di default"""
-    print("=== Test Comportamento Default ===")
+    print(f"=== Test Comportamento Default ===")
     
     with tempfile.TemporaryDirectory() as temp_dir:
         input_dir = os.path.join(temp_dir, "input")
@@ -58,15 +58,15 @@ def test_default_behavior():
         os.makedirs(output_dir)
         
         # Crea immagini di test
-        print("Creazione immagini di test...")
+        print(f"Creation immagini di test...")
         test_files = create_simple_test_images(input_dir, "IMG_TEST")
         
         # Trova gruppi
         groups = find_image_groups(input_dir)
-        assert "IMG_TEST" in groups, "Gruppo non trovato"
+        assert "IMG_TEST" in groups, "Gruppo non found"
         
         # Test 1: Comportamento default (dovrebbe preservare metadati)
-        print("\n1. Test comportamento default...")
+        print(f"\n1. Test comportamento default...")
         registrator_default = ImageRegistration(
             n_segments=500,
             reference_band=1,
@@ -77,16 +77,16 @@ def test_default_behavior():
         output_path_default = create_output_filename("IMG_TEST_default", output_dir)
         success = registrator_default.process_image_group(groups["IMG_TEST"], output_path_default)
         
-        assert success, "Registrazione default fallita"
+        assert success, "Registration default fallita"
         assert os.path.exists(output_path_default), "File output non creato"
-        print(f"✓ Registrazione default completata: {os.path.basename(output_path_default)}")
+        print(f"✓ Registration default completata: {os.path.basename(output_path_default)}")
         
         # Verifica che preserve_metadata sia True di default
         assert registrator_default.preserve_metadata == True, "preserve_metadata non è True di default"
-        print("✓ preserve_metadata è True di default")
+        print(f"✓ preserve_metadata è True di default")
         
         # Test 2: Disabilitazione esplicita
-        print("\n2. Test disabilitazione esplicita...")
+        print(f"\n2. Test disabilitazione esplicita...")
         registrator_no_meta = ImageRegistration(
             n_segments=500,
             reference_band=1,
@@ -97,13 +97,13 @@ def test_default_behavior():
         output_path_no_meta = create_output_filename("IMG_TEST_no_meta", output_dir)
         success = registrator_no_meta.process_image_group(groups["IMG_TEST"], output_path_no_meta)
         
-        assert success, "Registrazione senza metadati fallita"
+        assert success, "Registration senza metadati fallita"
         assert os.path.exists(output_path_no_meta), "File output senza metadati non creato"
-        print(f"✓ Registrazione senza metadati completata: {os.path.basename(output_path_no_meta)}")
+        print(f"✓ Registration senza metadati completata: {os.path.basename(output_path_no_meta)}")
         
         # Verifica che preserve_metadata sia False quando specificato
         assert registrator_no_meta.preserve_metadata == False, "preserve_metadata non rispetta impostazione esplicita"
-        print("✓ preserve_metadata rispetta impostazione esplicita")
+        print(f"✓ preserve_metadata rispetta impostazione esplicita")
         
         # Confronta dimensioni file (con metadati potrebbe essere leggermente più grande)
         size_default = os.path.getsize(output_path_default)
@@ -119,7 +119,7 @@ def test_default_behavior():
 
 def test_cli_behavior():
     """Test del comportamento CLI"""
-    print("\n=== Test Comportamento CLI ===")
+    print(f"\n=== Test Comportamento CLI ===")
     
     # Simula argparse per testare la logica
     class MockArgs:
@@ -130,20 +130,20 @@ def test_cli_behavior():
     args_default = MockArgs(no_metadata=False)
     preserve_metadata_default = not args_default.no_metadata
     assert preserve_metadata_default == True, "CLI default non preserva metadati"
-    print("✓ CLI preserva metadati di default")
+    print(f"✓ CLI preserva metadati di default")
     
     # Test 2: Con flag --no-metadata
     args_no_meta = MockArgs(no_metadata=True)
     preserve_metadata_disabled = not args_no_meta.no_metadata
     assert preserve_metadata_disabled == False, "CLI non rispetta --no-metadata"
-    print("✓ CLI rispetta flag --no-metadata")
+    print(f"✓ CLI rispetta flag --no-metadata")
     
     return True
 
 
 def main():
     """Esegue tutti i test di verifica"""
-    print("🔍 VERIFICA COMPORTAMENTO DEFAULT METADATI\n")
+    print(f"🔍 VERIFICA COMPORTAMENTO DEFAULT METADATA\n")
     
     try:
         # Test comportamento default
@@ -153,12 +153,12 @@ def main():
         test_cli_behavior()
         
         print(f"\n{'='*60}")
-        print("🎉 VERIFICA COMPLETATA CON SUCCESSO! 🎉")
-        print("\nComportamento confermato:")
-        print("✓ I metadati vengono preservati DI DEFAULT")
-        print("✓ Nessun flag necessario per preservare metadati")
-        print("✓ Flag --no-metadata disabilita preservazione")
-        print("✓ Comportamento coerente tra API e CLI")
+        print(f"🎉 VERIFICA COMPLETATA CON SUCCESS! 🎉")
+        print(f"\nComportamento confermato:")
+        print(f"✓ I metadati vengono preservati DI DEFAULT")
+        print(f"✓ Nessun flag necessario per preservare metadati")
+        print(f"✓ Flag --no-metadata disabilita preservazione")
+        print(f"✓ Comportamento coerente tra API e CLI")
         
     except Exception as e:
         print(f"\n❌ VERIFICA FALLITA: {str(e)}")

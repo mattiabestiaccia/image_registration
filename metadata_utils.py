@@ -1,5 +1,5 @@
 """
-Modulo per la gestione dei metadati geospaziali durante la registrazione
+Module for managing geospatial metadata during registration
 """
 
 import numpy as np
@@ -14,21 +14,21 @@ from pathlib import Path
 
 class MetadataManager:
     """
-    Classe per gestire i metadati geospaziali durante la registrazione
+    Class for managing geospatial metadata during registration
     """
-    
+
     def __init__(self):
         self.logger = logging.getLogger(__name__)
-        
+
     def extract_metadata(self, file_path: str) -> Dict[str, Any]:
         """
-        Estrae tutti i metadati da un file TIFF geospaziale
-        
+        Extract all metadata from a geospatial TIFF file
+
         Args:
-            file_path: Percorso del file
-            
+            file_path: File path
+
         Returns:
-            Dizionario con tutti i metadati
+            Dictionary with all metadata
         """
         metadata = {}
         
@@ -55,13 +55,13 @@ class MetadataManager:
                     'profile': src.profile.copy()
                 }
                 
-                self.logger.info(f"Metadati estratti da {os.path.basename(file_path)}")
+                self.logger.info(f"Metadata estratti da {os.path.basename(file_path)}")
                 self.logger.info(f"  CRS: {metadata['crs']}")
                 self.logger.info(f"  Transform: {metadata['transform']}")
                 self.logger.info(f"  Dimensioni: {metadata['width']}x{metadata['height']}")
                 
         except Exception as e:
-            self.logger.warning(f"Impossibile estrarre metadati da {file_path}: {str(e)}")
+            self.logger.warning(f"Unable to extract metadata from {file_path}: {str(e)}")
             # Fallback: metadati minimi
             metadata = {
                 'crs': None,
@@ -91,7 +91,7 @@ class MetadataManager:
         Carica un'immagine preservando i metadati
         
         Args:
-            file_path: Percorso del file
+            file_path: File path
             
         Returns:
             Tuple (immagine, metadati)
@@ -117,7 +117,7 @@ class MetadataManager:
         Aggiorna la geotrasformazione considerando la registrazione applicata
         
         Args:
-            original_transform: Trasformazione originale
+            original_transform: Transformation originale
             registration_matrix: Matrice di registrazione 2x3
             
         Returns:
@@ -140,22 +140,22 @@ class MetadataManager:
             # Perché la registrazione sposta i pixel, quindi dobbiamo compensare
             combined_transform = original_transform * ~reg_transform
             
-            self.logger.debug(f"Trasformazione aggiornata: {combined_transform}")
+            self.logger.debug(f"Transformation aggiornata: {combined_transform}")
             
             return combined_transform
             
         except Exception as e:
-            self.logger.warning(f"Errore nell'aggiornamento della trasformazione: {str(e)}")
+            self.logger.warning(f"Error nell'aggiornamento della trasformazione: {str(e)}")
             return original_transform
     
     def create_output_profile(self, reference_metadata: Dict[str, Any], 
                             num_bands: int, output_dtype: str = None) -> Dict[str, Any]:
         """
-        Crea il profilo per il file di output multibanda
+        Crea il profilo per il output file multibanda
         
         Args:
-            reference_metadata: Metadati della banda di riferimento
-            num_bands: Numero di bande nel file di output
+            reference_metadata: Metadata della banda di riferimento
+            num_bands: Numero di bande nel output file
             output_dtype: Tipo di dato per l'output
             
         Returns:
@@ -194,8 +194,8 @@ class MetadataManager:
         
         Args:
             bands: Lista delle bande registrate
-            output_path: Percorso del file di output
-            reference_metadata: Metadati della banda di riferimento
+            output_path: Percorso del output file
+            reference_metadata: Metadata della banda di riferimento
             band_descriptions: Descrizioni per ogni banda
             registration_matrices: Matrici di registrazione applicate
         """
@@ -223,7 +223,7 @@ class MetadataManager:
                 if band_descriptions:
                     dst.descriptions = band_descriptions[:len(bands)]
                 else:
-                    dst.descriptions = [f"Banda {i+1}" for i in range(len(bands))]
+                    dst.descriptions = [f"Band {i+1}" for i in range(len(bands))]
                 
                 # Copia tag originali e aggiungi informazioni sulla registrazione
                 tags = reference_metadata['tags'].copy()
@@ -241,17 +241,17 @@ class MetadataManager:
                 
                 dst.update_tags(**tags)
                 
-            self.logger.info(f"File multibanda salvato con metadati: {output_path}")
-            self.logger.info(f"  Bande: {len(bands)}")
-            self.logger.info(f"  CRS preservato: {profile.get('crs', 'None')}")
+            self.logger.info(f"Multiband file saved with metadata: {output_path}")
+            self.logger.info(f"  Bands: {len(bands)}")
+            self.logger.info(f"  CRS preserved: {profile.get('crs', 'None')}")
             
         except Exception as e:
-            self.logger.error(f"Errore nel salvataggio con metadati: {str(e)}")
+            self.logger.error(f"Error nel salvataggio con metadati: {str(e)}")
             # Fallback: salva senza metadati usando tifffile
             import tifffile
             multiband_image = np.stack(bands, axis=0)
             tifffile.imwrite(output_path, multiband_image, photometric='minisblack')
-            self.logger.warning(f"Salvato senza metadati geospaziali: {output_path}")
+            self.logger.warning(f"Saved without geospatial metadata: {output_path}")
     
     def validate_spatial_consistency(self, metadata_list: List[Dict[str, Any]]) -> bool:
         """
@@ -284,8 +284,8 @@ class MetadataManager:
             if metadata['transform'] and reference['transform']:
                 for j in range(6):
                     if abs(metadata['transform'][j] - reference['transform'][j]) > 1e-10:
-                        self.logger.warning(f"Trasformazione diversa nella banda {i+1}")
+                        self.logger.warning(f"Transformation diversa nella banda {i+1}")
                         return False
         
-        self.logger.info("Metadati spaziali consistenti tra tutte le bande")
+        self.logger.info(f"Metadata spaziali consistenti tra tutte le bande")
         return True
