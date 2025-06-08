@@ -25,12 +25,6 @@ pip install -r requirements.txt
 pip install numpy opencv-python scikit-image tifffile matplotlib imagecodecs rasterio
 ```
 
-### ⚠️ Problema File TIFF Compressi
-Se vedi l'errore `COMPRESSION.LZW requires the 'imagecodecs' package`:
-```bash
-pip install imagecodecs
-```
-
 ### Avvio Interfaccia
 ```bash
 python3 run_gui.py
@@ -98,4 +92,3 @@ image_registration/
 
 ---
 
-**Licenza**: MIT | **Supporto**: Apri issue per domande o problemi
