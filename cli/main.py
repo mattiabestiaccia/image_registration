@@ -9,8 +9,8 @@ import sys
 from pathlib import Path
 from tqdm import tqdm
 
-from image_registration import ImageRegistration
-from utils import find_image_groups, create_output_filename, get_resume_info, check_already_processed
+from ..core.image_registration import ImageRegistration
+from ..utils.utils import find_image_groups, create_output_filename, get_resume_info, check_already_processed
 
 
 def main():

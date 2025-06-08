@@ -17,10 +17,10 @@ from tqdm import tqdm
 import warnings
 warnings.filterwarnings('ignore')
 
-from utils import (load_image_band, save_multiband_tiff, validate_image_group,
+from ..utils.utils import (load_image_band, save_multiband_tiff, validate_image_group,
                   create_output_filename, load_image_band_with_metadata,
                   save_multiband_tiff_with_metadata)
-from metadata_utils import MetadataManager
+from .metadata_utils import MetadataManager
 
 
 class ImageRegistration:
