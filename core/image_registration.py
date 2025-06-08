@@ -17,10 +17,29 @@ from tqdm import tqdm
 import warnings
 warnings.filterwarnings('ignore')
 
-from ..utils.utils import (load_image_band, save_multiband_tiff, validate_image_group,
-                  create_output_filename, load_image_band_with_metadata,
-                  save_multiband_tiff_with_metadata)
-from .metadata_utils import MetadataManager
+try:
+    from ..utils.utils import (load_image_band, save_multiband_tiff, validate_image_group,
+                      create_output_filename, load_image_band_with_metadata,
+                      save_multiband_tiff_with_metadata)
+    from .metadata_utils import MetadataManager
+except ImportError:
+    try:
+        from utils.utils import (load_image_band, save_multiband_tiff, validate_image_group,
+                          create_output_filename, load_image_band_with_metadata,
+                          save_multiband_tiff_with_metadata)
+        from metadata_utils import MetadataManager
+    except ImportError:
+        # Fallback per esecuzione diretta
+        import sys
+        import os
+        current_dir = os.path.dirname(os.path.abspath(__file__))
+        parent_dir = os.path.dirname(current_dir)
+        sys.path.insert(0, parent_dir)
+
+        from utils.utils import (load_image_band, save_multiband_tiff, validate_image_group,
+                          create_output_filename, load_image_band_with_metadata,
+                          save_multiband_tiff_with_metadata)
+        from core.metadata_utils import MetadataManager
 
 
 class ImageRegistration:
@@ -409,9 +428,21 @@ class ImageRegistration:
                 processed = self.preprocess_image(band, enhance_contrast=True)
                 # Histogram matching verso la banda di riferimento
                 try:
-                    processed = match_histograms(processed, reference_band)
-                except:
-                    pass  # Se fallisce, usa l'immagine processata normale
+                    # Per immagini 2D (scala di grigi), verifica la versione di scikit-image
+                    # e usa il parametro corretto
+                    import skimage
+                    from packaging import version
+
+                    if version.parse(skimage.__version__) >= version.parse("0.19.0"):
+                        # Versioni più recenti: usa channel_axis=None per immagini 2D
+                        processed = match_histograms(processed, reference_band, channel_axis=None)
+                    else:
+                        # Versioni più vecchie: usa multichannel=False
+                        processed = match_histograms(processed, reference_band, multichannel=False)
+                except Exception as e:
+                    # Se fallisce, usa l'immagine processata normale
+                    self.logger.warning(f"Histogram matching fallito per banda {i+1}: {e}")
+                    pass
 
             processed_bands.append(processed)
             self.logger.info(f"Pre-processing band {i+1} completed")

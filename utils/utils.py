@@ -10,7 +10,27 @@ from typing import List, Tuple, Dict, Optional
 import numpy as np
 import tifffile
 from PIL import Image
-from metadata_utils import MetadataManager
+try:
+    from ..core.metadata_utils import MetadataManager
+except ImportError:
+    try:
+        from core.metadata_utils import MetadataManager
+    except ImportError:
+        try:
+            from metadata_utils import MetadataManager
+        except ImportError:
+            # Fallback: crea una classe dummy se MetadataManager non è disponibile
+            class MetadataManager:
+                def load_image_with_metadata(self, file_path):
+                    img = tifffile.imread(file_path)
+                    if img.ndim == 3 and img.shape[2] == 1:
+                        img = img.squeeze(axis=2)
+                    return img.astype(np.float32), {}
+
+                def save_multiband_with_metadata(self, bands, output_path, reference_metadata,
+                                               band_descriptions=None, registration_matrices=None):
+                    multiband_image = np.stack(bands, axis=0)
+                    tifffile.imwrite(output_path, multiband_image, photometric='minisblack')
 
 
 def find_image_groups(input_path: str) -> Dict[str, List[str]]:
@@ -90,13 +110,28 @@ def load_image_band(file_path: str) -> np.ndarray:
         if img.ndim == 3 and img.shape[2] == 1:
             img = img.squeeze(axis=2)
         return img.astype(np.float32)
-    except:
-        # Fallback with PIL
-        img = Image.open(file_path)
-        img_array = np.array(img).astype(np.float32)
-        if img_array.ndim == 3 and img_array.shape[2] == 1:
-            img_array = img_array.squeeze(axis=2)
-        return img_array
+    except Exception as e:
+        # Check for specific compression errors
+        if "imagecodecs" in str(e) or "COMPRESSION" in str(e):
+            raise ImportError(
+                f"Errore caricamento {file_path}: {e}\n"
+                "Installa imagecodecs per supportare file TIFF compressi:\n"
+                "pip install imagecodecs"
+            )
+
+        # Fallback with PIL for other errors
+        try:
+            img = Image.open(file_path)
+            img_array = np.array(img).astype(np.float32)
+            if img_array.ndim == 3 and img_array.shape[2] == 1:
+                img_array = img_array.squeeze(axis=2)
+            return img_array
+        except Exception as e2:
+            raise RuntimeError(
+                f"Impossibile caricare {file_path}:\n"
+                f"Errore tifffile: {e}\n"
+                f"Errore PIL: {e2}"
+            )
 
 
 def load_image_band_with_metadata(file_path: str) -> Tuple[np.ndarray, Dict]:

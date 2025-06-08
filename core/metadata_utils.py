@@ -89,26 +89,41 @@ class MetadataManager:
     def load_image_with_metadata(self, file_path: str) -> Tuple[np.ndarray, Dict[str, Any]]:
         """
         Carica un'immagine preservando i metadati
-        
+
         Args:
             file_path: File path
-            
+
         Returns:
             Tuple (immagine, metadati)
         """
         metadata = self.extract_metadata(file_path)
-        
+
         try:
             with rasterio.open(file_path) as src:
                 # Leggi la prima banda (assumiamo immagini single-band)
                 image = src.read(1).astype(np.float32)
-        except:
+        except Exception as e:
             # Fallback con tifffile
-            import tifffile
-            image = tifffile.imread(file_path).astype(np.float32)
-            if image.ndim == 3 and image.shape[2] == 1:
-                image = image.squeeze(axis=2)
-        
+            try:
+                import tifffile
+                image = tifffile.imread(file_path).astype(np.float32)
+                if image.ndim == 3 and image.shape[2] == 1:
+                    image = image.squeeze(axis=2)
+            except Exception as e2:
+                # Check for compression errors
+                if "imagecodecs" in str(e2) or "COMPRESSION" in str(e2):
+                    raise ImportError(
+                        f"Errore caricamento {file_path}: {e2}\n"
+                        "Installa imagecodecs per supportare file TIFF compressi:\n"
+                        "pip install imagecodecs"
+                    )
+                else:
+                    raise RuntimeError(
+                        f"Impossibile caricare {file_path}:\n"
+                        f"Errore rasterio: {e}\n"
+                        f"Errore tifffile: {e2}"
+                    )
+
         return image, metadata
     
     def update_transform_for_registration(self, original_transform: Affine, 

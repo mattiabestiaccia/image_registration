@@ -154,7 +154,7 @@ celerybeat.pid
 .env
 .venv
 env/
-venv/
+venv_registration/
 ENV/
 env.bak/
 venv.bak/
@@ -356,7 +356,22 @@ _templates/
 # CUSTOM PROJECT PATTERNS
 # =============================================================================
 
-# Add any project-specific patterns here
-# Example:
-# my_custom_folder/
-# *.custom_extension
+# Test and debug files
+test_*.py
+*_test.py
+debug_*.py
+temp_*.py
+
+# Documentation debug files
+*_RISOLTO.md
+*_FIX.md
+PROBLEMA_*.md
+NUOVE_*.md
+COLORBAR_*.md
+CHANNEL_*.md
+SALVATAGGIO_*.md
+VISUALIZZAZIONE_*.md
+RAGGRUPPAMENTO_*.md
+
+# Project directories
+projects/
