@@ -1,0 +1,116 @@
+{
+  "project_name": "project_20250608_161730",
+  "created_at": "2025-06-08T16:17:30.138481",
+  "source_paths": [
+    "/home/brus/Projects/HPL/_HPLimages/5_bands/241219_phantom_poplar_5ab/images/IMG_0000_1.tif",
+    "/home/brus/Projects/HPL/_HPLimages/5_bands/241219_phantom_poplar_5ab/images/IMG_0000_2.tif",
+    "/home/brus/Projects/HPL/_HPLimages/5_bands/241219_phantom_poplar_5ab/images/IMG_0000_3.tif",
+    "/home/brus/Projects/HPL/_HPLimages/5_bands/241219_phantom_poplar_5ab/images/IMG_0000_4.tif",
+    "/home/brus/Projects/HPL/_HPLimages/5_bands/241219_phantom_poplar_5ab/images/IMG_0000_5.tif",
+    "/home/brus/Projects/HPL/_HPLimages/5_bands/241219_phantom_poplar_5ab/images/IMG_0002_1.tif",
+    "/home/brus/Projects/HPL/_HPLimages/5_bands/241219_phantom_poplar_5ab/images/IMG_0002_2.tif",
+    "/home/brus/Projects/HPL/_HPLimages/5_bands/241219_phantom_poplar_5ab/images/IMG_0002_3.tif",
+    "/home/brus/Projects/HPL/_HPLimages/5_bands/241219_phantom_poplar_5ab/images/IMG_0002_4.tif",
+    "/home/brus/Projects/HPL/_HPLimages/5_bands/241219_phantom_poplar_5ab/images/IMG_0002_5.tif",
+    "/home/brus/Projects/HPL/_HPLimages/5_bands/241219_phantom_poplar_5ab/images/IMG_0004_1.tif",
+    "/home/brus/Projects/HPL/_HPLimages/5_bands/241219_phantom_poplar_5ab/images/IMG_0004_2.tif",
+    "/home/brus/Projects/HPL/_HPLimages/5_bands/241219_phantom_poplar_5ab/images/IMG_0004_3.tif",
+    "/home/brus/Projects/HPL/_HPLimages/5_bands/241219_phantom_poplar_5ab/images/IMG_0004_4.tif",
+    "/home/brus/Projects/HPL/_HPLimages/5_bands/241219_phantom_poplar_5ab/images/IMG_0004_5.tif",
+    "/home/brus/Projects/HPL/_HPLimages/5_bands/241219_phantom_poplar_5ab/images/IMG_0965_1.tif",
+    "/home/brus/Projects/HPL/_HPLimages/5_bands/241219_phantom_poplar_5ab/images/IMG_0965_2.tif",
+    "/home/brus/Projects/HPL/_HPLimages/5_bands/241219_phantom_poplar_5ab/images/IMG_0965_3.tif",
+    "/home/brus/Projects/HPL/_HPLimages/5_bands/241219_phantom_poplar_5ab/images/IMG_0965_4.tif",
+    "/home/brus/Projects/HPL/_HPLimages/5_bands/241219_phantom_poplar_5ab/images/IMG_0965_5.tif",
+    "/home/brus/Projects/HPL/_HPLimages/5_bands/241219_phantom_poplar_5ab/images/IMG_1396_1.tif",
+    "/home/brus/Projects/HPL/_HPLimages/5_bands/241219_phantom_poplar_5ab/images/IMG_1396_2.tif",
+    "/home/brus/Projects/HPL/_HPLimages/5_bands/241219_phantom_poplar_5ab/images/IMG_1396_3.tif",
+    "/home/brus/Projects/HPL/_HPLimages/5_bands/241219_phantom_poplar_5ab/images/IMG_1396_4.tif",
+    "/home/brus/Projects/HPL/_HPLimages/5_bands/241219_phantom_poplar_5ab/images/IMG_1396_5.tif",
+    "/home/brus/Projects/HPL/_HPLimages/5_bands/241219_phantom_poplar_5ab/images/IMG_1553_1.tif",
+    "/home/brus/Projects/HPL/_HPLimages/5_bands/241219_phantom_poplar_5ab/images/IMG_1553_2.tif",
+    "/home/brus/Projects/HPL/_HPLimages/5_bands/241219_phantom_poplar_5ab/images/IMG_1553_3.tif",
+    "/home/brus/Projects/HPL/_HPLimages/5_bands/241219_phantom_poplar_5ab/images/IMG_1553_4.tif",
+    "/home/brus/Projects/HPL/_HPLimages/5_bands/241219_phantom_poplar_5ab/images/IMG_1553_5.tif",
+    "/home/brus/Projects/HPL/_HPLimages/5_bands/241219_phantom_poplar_5ab/images/IMG_1781_1.tif",
+    "/home/brus/Projects/HPL/_HPLimages/5_bands/241219_phantom_poplar_5ab/images/IMG_1781_2.tif",
+    "/home/brus/Projects/HPL/_HPLimages/5_bands/241219_phantom_poplar_5ab/images/IMG_1781_3.tif",
+    "/home/brus/Projects/HPL/_HPLimages/5_bands/241219_phantom_poplar_5ab/images/IMG_1781_4.tif",
+    "/home/brus/Projects/HPL/_HPLimages/5_bands/241219_phantom_poplar_5ab/images/IMG_1781_5.tif",
+    "/home/brus/Projects/HPL/_HPLimages/5_bands/241219_phantom_poplar_5ab/images/IMG_2025_1.tif",
+    "/home/brus/Projects/HPL/_HPLimages/5_bands/241219_phantom_poplar_5ab/images/IMG_2025_2.tif",
+    "/home/brus/Projects/HPL/_HPLimages/5_bands/241219_phantom_poplar_5ab/images/IMG_2025_3.tif",
+    "/home/brus/Projects/HPL/_HPLimages/5_bands/241219_phantom_poplar_5ab/images/IMG_2025_4.tif",
+    "/home/brus/Projects/HPL/_HPLimages/5_bands/241219_phantom_poplar_5ab/images/IMG_2025_5.tif",
+    "/home/brus/Projects/HPL/_HPLimages/5_bands/241219_phantom_poplar_5ab/images/IMG_2403_1.tif",
+    "/home/brus/Projects/HPL/_HPLimages/5_bands/241219_phantom_poplar_5ab/images/IMG_2403_2.tif",
+    "/home/brus/Projects/HPL/_HPLimages/5_bands/241219_phantom_poplar_5ab/images/IMG_2403_3.tif",
+    "/home/brus/Projects/HPL/_HPLimages/5_bands/241219_phantom_poplar_5ab/images/IMG_2403_4.tif",
+    "/home/brus/Projects/HPL/_HPLimages/5_bands/241219_phantom_poplar_5ab/images/IMG_2403_5.tif",
+    "/home/brus/Projects/HPL/_HPLimages/5_bands/241219_phantom_poplar_5ab/images/IMG_2538_1.tif",
+    "/home/brus/Projects/HPL/_HPLimages/5_bands/241219_phantom_poplar_5ab/images/IMG_2538_2.tif",
+    "/home/brus/Projects/HPL/_HPLimages/5_bands/241219_phantom_poplar_5ab/images/IMG_2538_3.tif",
+    "/home/brus/Projects/HPL/_HPLimages/5_bands/241219_phantom_poplar_5ab/images/IMG_2538_4.tif",
+    "/home/brus/Projects/HPL/_HPLimages/5_bands/241219_phantom_poplar_5ab/images/IMG_2538_5.tif"
+  ],
+  "source_type": "multiple_files",
+  "processed_files": [
+    {
+      "original_path": "['/home/brus/Projects/HPL/_HPLimages/5_bands/241219_phantom_poplar_5ab/images/IMG_0002_1.tif', '/home/brus/Projects/HPL/_HPLimages/5_bands/241219_phantom_poplar_5ab/images/IMG_0002_2.tif', '/home/brus/Projects/HPL/_HPLimages/5_bands/241219_phantom_poplar_5ab/images/IMG_0002_3.tif', '/home/brus/Projects/HPL/_HPLimages/5_bands/241219_phantom_poplar_5ab/images/IMG_0002_4.tif', '/home/brus/Projects/HPL/_HPLimages/5_bands/241219_phantom_poplar_5ab/images/IMG_0002_5.tif']",
+      "processed_path": "/home/brus/Projects/HPL/paper/image_registration/projects/project_20250608_161730/registered/IMG_0002_registered.tif",
+      "processed_at": "2025-06-08T16:17:37.622378"
+    },
+    {
+      "original_path": "['/home/brus/Projects/HPL/_HPLimages/5_bands/241219_phantom_poplar_5ab/images/IMG_0004_1.tif', '/home/brus/Projects/HPL/_HPLimages/5_bands/241219_phantom_poplar_5ab/images/IMG_0004_2.tif', '/home/brus/Projects/HPL/_HPLimages/5_bands/241219_phantom_poplar_5ab/images/IMG_0004_3.tif', '/home/brus/Projects/HPL/_HPLimages/5_bands/241219_phantom_poplar_5ab/images/IMG_0004_4.tif', '/home/brus/Projects/HPL/_HPLimages/5_bands/241219_phantom_poplar_5ab/images/IMG_0004_5.tif']",
+      "processed_path": "/home/brus/Projects/HPL/paper/image_registration/projects/project_20250608_161730/registered/IMG_0004_registered.tif",
+      "processed_at": "2025-06-08T16:17:38.423020"
+    },
+    {
+      "original_path": "['/home/brus/Projects/HPL/_HPLimages/5_bands/241219_phantom_poplar_5ab/images/IMG_0965_1.tif', '/home/brus/Projects/HPL/_HPLimages/5_bands/241219_phantom_poplar_5ab/images/IMG_0965_2.tif', '/home/brus/Projects/HPL/_HPLimages/5_bands/241219_phantom_poplar_5ab/images/IMG_0965_3.tif', '/home/brus/Projects/HPL/_HPLimages/5_bands/241219_phantom_poplar_5ab/images/IMG_0965_4.tif', '/home/brus/Projects/HPL/_HPLimages/5_bands/241219_phantom_poplar_5ab/images/IMG_0965_5.tif']",
+      "processed_path": "/home/brus/Projects/HPL/paper/image_registration/projects/project_20250608_161730/registered/IMG_0965_registered.tif",
+      "processed_at": "2025-06-08T16:17:39.329407"
+    },
+    {
+      "original_path": "['/home/brus/Projects/HPL/_HPLimages/5_bands/241219_phantom_poplar_5ab/images/IMG_1396_1.tif', '/home/brus/Projects/HPL/_HPLimages/5_bands/241219_phantom_poplar_5ab/images/IMG_1396_2.tif', '/home/brus/Projects/HPL/_HPLimages/5_bands/241219_phantom_poplar_5ab/images/IMG_1396_3.tif', '/home/brus/Projects/HPL/_HPLimages/5_bands/241219_phantom_poplar_5ab/images/IMG_1396_4.tif', '/home/brus/Projects/HPL/_HPLimages/5_bands/241219_phantom_poplar_5ab/images/IMG_1396_5.tif']",
+      "processed_path": "/home/brus/Projects/HPL/paper/image_registration/projects/project_20250608_161730/registered/IMG_1396_registered.tif",
+      "processed_at": "2025-06-08T16:17:40.211833"
+    },
+    {
+      "original_path": "['/home/brus/Projects/HPL/_HPLimages/5_bands/241219_phantom_poplar_5ab/images/IMG_1553_1.tif', '/home/brus/Projects/HPL/_HPLimages/5_bands/241219_phantom_poplar_5ab/images/IMG_1553_2.tif', '/home/brus/Projects/HPL/_HPLimages/5_bands/241219_phantom_poplar_5ab/images/IMG_1553_3.tif', '/home/brus/Projects/HPL/_HPLimages/5_bands/241219_phantom_poplar_5ab/images/IMG_1553_4.tif', '/home/brus/Projects/HPL/_HPLimages/5_bands/241219_phantom_poplar_5ab/images/IMG_1553_5.tif']",
+      "processed_path": "/home/brus/Projects/HPL/paper/image_registration/projects/project_20250608_161730/registered/IMG_1553_registered.tif",
+      "processed_at": "2025-06-08T16:17:41.003777"
+    },
+    {
+      "original_path": "['/home/brus/Projects/HPL/_HPLimages/5_bands/241219_phantom_poplar_5ab/images/IMG_1781_1.tif', '/home/brus/Projects/HPL/_HPLimages/5_bands/241219_phantom_poplar_5ab/images/IMG_1781_2.tif', '/home/brus/Projects/HPL/_HPLimages/5_bands/241219_phantom_poplar_5ab/images/IMG_1781_3.tif', '/home/brus/Projects/HPL/_HPLimages/5_bands/241219_phantom_poplar_5ab/images/IMG_1781_4.tif', '/home/brus/Projects/HPL/_HPLimages/5_bands/241219_phantom_poplar_5ab/images/IMG_1781_5.tif']",
+      "processed_path": "/home/brus/Projects/HPL/paper/image_registration/projects/project_20250608_161730/registered/IMG_1781_registered.tif",
+      "processed_at": "2025-06-08T16:17:41.857982"
+    },
+    {
+      "original_path": "['/home/brus/Projects/HPL/_HPLimages/5_bands/241219_phantom_poplar_5ab/images/IMG_2025_1.tif', '/home/brus/Projects/HPL/_HPLimages/5_bands/241219_phantom_poplar_5ab/images/IMG_2025_2.tif', '/home/brus/Projects/HPL/_HPLimages/5_bands/241219_phantom_poplar_5ab/images/IMG_2025_3.tif', '/home/brus/Projects/HPL/_HPLimages/5_bands/241219_phantom_poplar_5ab/images/IMG_2025_4.tif', '/home/brus/Projects/HPL/_HPLimages/5_bands/241219_phantom_poplar_5ab/images/IMG_2025_5.tif']",
+      "processed_path": "/home/brus/Projects/HPL/paper/image_registration/projects/project_20250608_161730/registered/IMG_2025_registered.tif",
+      "processed_at": "2025-06-08T16:17:42.614545"
+    },
+    {
+      "original_path": "['/home/brus/Projects/HPL/_HPLimages/5_bands/241219_phantom_poplar_5ab/images/IMG_2403_1.tif', '/home/brus/Projects/HPL/_HPLimages/5_bands/241219_phantom_poplar_5ab/images/IMG_2403_2.tif', '/home/brus/Projects/HPL/_HPLimages/5_bands/241219_phantom_poplar_5ab/images/IMG_2403_3.tif', '/home/brus/Projects/HPL/_HPLimages/5_bands/241219_phantom_poplar_5ab/images/IMG_2403_4.tif', '/home/brus/Projects/HPL/_HPLimages/5_bands/241219_phantom_poplar_5ab/images/IMG_2403_5.tif']",
+      "processed_path": "/home/brus/Projects/HPL/paper/image_registration/projects/project_20250608_161730/registered/IMG_2403_registered.tif",
+      "processed_at": "2025-06-08T16:17:43.456158"
+    },
+    {
+      "original_path": "['/home/brus/Projects/HPL/_HPLimages/5_bands/241219_phantom_poplar_5ab/images/IMG_2538_1.tif', '/home/brus/Projects/HPL/_HPLimages/5_bands/241219_phantom_poplar_5ab/images/IMG_2538_2.tif', '/home/brus/Projects/HPL/_HPLimages/5_bands/241219_phantom_poplar_5ab/images/IMG_2538_3.tif', '/home/brus/Projects/HPL/_HPLimages/5_bands/241219_phantom_poplar_5ab/images/IMG_2538_4.tif', '/home/brus/Projects/HPL/_HPLimages/5_bands/241219_phantom_poplar_5ab/images/IMG_2538_5.tif']",
+      "processed_path": "/home/brus/Projects/HPL/paper/image_registration/projects/project_20250608_161730/registered/IMG_2538_registered.tif",
+      "processed_at": "2025-06-08T16:17:44.264369"
+    }
+  ],
+  "visualizations_saved": [
+    {
+      "path": "/home/brus/Projects/HPL/paper/image_registration/projects/project_20250608_161730/visualizations/IMG_0002_registered_rgb.png",
+      "type": "rgb",
+      "saved_at": "2025-06-08T16:18:45.171445"
+    },
+    {
+      "path": "/home/brus/Projects/HPL/paper/image_registration/projects/project_20250608_161730/visualizations/IMG_0002_registered_red_edge.png",
+      "type": "red_edge",
+      "saved_at": "2025-06-08T16:18:57.010211"
+    }
+  ]
+}

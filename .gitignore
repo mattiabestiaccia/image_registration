@@ -353,7 +353,7 @@ _static/
 _templates/
 
 # =============================================================================
-# CUSTOM PROJECT PATTERNS
+# CUSTOM PROJECT FILES
 # =============================================================================
 
 # Test and debug files
@@ -373,5 +373,6 @@ SALVATAGGIO_*.md
 VISUALIZZAZIONE_*.md
 RAGGRUPPAMENTO_*.md
 
-# Project directories
-projects/
+# Project directories (exclude all except test_proj)
+projects/*
+!projects/test_proj/
