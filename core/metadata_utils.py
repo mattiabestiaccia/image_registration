@@ -10,6 +10,8 @@ from typing import Dict, List, Optional, Tuple, Any
 import logging
 import os
 from pathlib import Path
+import tifffile
+from fractions import Fraction
 
 
 class MetadataManager:
@@ -19,6 +21,133 @@ class MetadataManager:
 
     def __init__(self):
         self.logger = logging.getLogger(__name__)
+    
+    def gps_fraction_to_decimal(self, gps_coord):
+        """
+        Converte coordinate GPS dal formato frazione (gradi, minuti, secondi) al formato decimale.
+        
+        Args:
+            gps_coord: Tupla di 3 valori (gradi, minuti, secondi) come frazioni o interi
+            
+        Returns:
+            float: Coordinata in formato decimale
+        """
+        def parse_value(val):
+            if isinstance(val, (int, float)):
+                return float(val)
+            elif isinstance(val, tuple) and len(val) == 2:
+                return Fraction(val[0], val[1])
+            else:
+                return float(val)
+        
+        degrees = parse_value(gps_coord[0]) / 10000000  # Diviso per 10^7
+        minutes = parse_value(gps_coord[1]) / 10000000  # Diviso per 10^7
+        seconds = parse_value(gps_coord[2]) / 10000000  # Diviso per 10^7
+        
+        return float(degrees + minutes/60 + seconds/3600)
+    
+    def extract_gps_coordinates(self, tiff_path: str) -> Dict[str, Any]:
+        """
+        Estrae le coordinate GPS da un file TIFF.
+        Cerca prima nei tag rasterio, poi nei tag EXIF.
+        
+        Args:
+            tiff_path: Percorso al file TIFF
+            
+        Returns:
+            dict: Dizionario con latitudine, longitudine e altitudine
+        """
+        # Prima prova con rasterio (per file processati)
+        try:
+            with rasterio.open(tiff_path) as src:
+                tags = src.tags()
+                gps_data = {}
+                
+                # Cerca tag GPS nei metadati rasterio
+                if 'GPS_LATITUDE' in tags:
+                    gps_data['latitude'] = float(tags['GPS_LATITUDE'])
+                    gps_data['latitude_ref'] = tags.get('GPS_LATITUDE_REF', 'N')
+                
+                if 'GPS_LONGITUDE' in tags:
+                    gps_data['longitude'] = float(tags['GPS_LONGITUDE'])
+                    gps_data['longitude_ref'] = tags.get('GPS_LONGITUDE_REF', 'E')
+                
+                if 'GPS_ALTITUDE' in tags:
+                    gps_data['altitude'] = float(tags['GPS_ALTITUDE'])
+                
+                if 'GPS_DOP' in tags:
+                    gps_data['dop'] = float(tags['GPS_DOP'])
+                
+                if gps_data:
+                    self.logger.info(f"GPS coordinates extracted from rasterio tags in {os.path.basename(tiff_path)}")
+                    if 'latitude' in gps_data and 'longitude' in gps_data:
+                        self.logger.info(f"  Lat: {gps_data['latitude']:.8f}, Lon: {gps_data['longitude']:.8f}")
+                    return gps_data
+                    
+        except Exception as e:
+            self.logger.debug(f"Rasterio GPS extraction failed for {tiff_path}: {str(e)}")
+        
+        # Fallback: prova con tifffile (per file originali)
+        try:
+            with tifffile.TiffFile(tiff_path) as tif:
+                page = tif.pages[0]
+                
+                # Cerca il tag GPS
+                gps_tag = None
+                for tag in page.tags:
+                    if tag.name == 'GPSTag':
+                        gps_tag = tag.value
+                        break
+                
+                if not gps_tag:
+                    return {}
+                
+                # Estrai i dati GPS
+                gps_data = {}
+                
+                # Latitudine
+                if 'GPSLatitude' in gps_tag and 'GPSLatitudeRef' in gps_tag:
+                    lat_decimal = self.gps_fraction_to_decimal(gps_tag['GPSLatitude'])
+                    if gps_tag['GPSLatitudeRef'] == 'S':
+                        lat_decimal = -lat_decimal
+                    gps_data['latitude'] = lat_decimal
+                    gps_data['latitude_ref'] = gps_tag['GPSLatitudeRef']
+                
+                # Longitudine
+                if 'GPSLongitude' in gps_tag and 'GPSLongitudeRef' in gps_tag:
+                    lon_decimal = self.gps_fraction_to_decimal(gps_tag['GPSLongitude'])
+                    if gps_tag['GPSLongitudeRef'] == 'W':
+                        lon_decimal = -lon_decimal
+                    gps_data['longitude'] = lon_decimal
+                    gps_data['longitude_ref'] = gps_tag['GPSLongitudeRef']
+                
+                # Altitudine
+                if 'GPSAltitude' in gps_tag:
+                    alt_frac = gps_tag['GPSAltitude']
+                    altitude = Fraction(alt_frac[0], alt_frac[1])
+                    gps_data['altitude'] = float(altitude)
+                    
+                    # Riferimento altitudine (0 = sopra il livello del mare, 1 = sotto)
+                    if 'GPSAltitudeRef' in gps_tag:
+                        if gps_tag['GPSAltitudeRef'] == 1:
+                            gps_data['altitude'] = -gps_data['altitude']
+                
+                # DOP (Dilution of Precision)
+                if 'GPSDOP' in gps_tag:
+                    dop = gps_tag['GPSDOP']
+                    if dop[1] != 0:  # Evita divisione per zero
+                        gps_data['dop'] = float(Fraction(dop[0], dop[1]))
+                
+                if gps_data:
+                    self.logger.info(f"GPS coordinates extracted from EXIF tags in {os.path.basename(tiff_path)}")
+                    if 'latitude' in gps_data and 'longitude' in gps_data:
+                        self.logger.info(f"  Lat: {gps_data['latitude']:.8f}, Lon: {gps_data['longitude']:.8f}")
+                
+                return gps_data
+                
+        except Exception as e:
+            self.logger.warning(f"Error extracting GPS from {tiff_path}: {str(e)}")
+            return {}
 
     def extract_metadata(self, file_path: str) -> Dict[str, Any]:
         """
@@ -28,7 +157,7 @@ class MetadataManager:
             file_path: File path
 
         Returns:
-            Dictionary with all metadata
+            Dictionary with all metadata including GPS coordinates
         """
         metadata = {}
         
@@ -83,6 +212,10 @@ class MetadataManager:
                 'colorinterp': None,
                 'profile': {}
             }
+        
+        # Estrai coordinate GPS
+        gps_data = self.extract_gps_coordinates(file_path)
+        metadata['gps'] = gps_data
         
         return metadata
     
@@ -253,6 +386,20 @@ class MetadataManager:
                     for i, matrix in enumerate(registration_matrices):
                         if matrix is not None:
                             tags[f'REGISTRATION_MATRIX_BAND_{i+1}'] = str(matrix.tolist())
+                
+                # Preserva coordinate GPS se disponibili
+                if 'gps' in reference_metadata and reference_metadata['gps']:
+                    gps_data = reference_metadata['gps']
+                    if 'latitude' in gps_data:
+                        tags['GPS_LATITUDE'] = str(gps_data['latitude'])
+                        tags['GPS_LATITUDE_REF'] = gps_data.get('latitude_ref', 'N')
+                    if 'longitude' in gps_data:
+                        tags['GPS_LONGITUDE'] = str(gps_data['longitude'])
+                        tags['GPS_LONGITUDE_REF'] = gps_data.get('longitude_ref', 'E')
+                    if 'altitude' in gps_data:
+                        tags['GPS_ALTITUDE'] = str(gps_data['altitude'])
+                    if 'dop' in gps_data:
+                        tags['GPS_DOP'] = str(gps_data['dop'])
                 
                 dst.update_tags(**tags)
                 
