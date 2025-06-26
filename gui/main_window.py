@@ -17,16 +17,16 @@ try:
     from .file_selector import FileSelector
     from .project_manager import ProjectManager
     from .image_viewer import ImageViewer
-    from .dual_registration_window import DualRegistrationWindow
     from ..core.image_registration import ImageRegistration
+    from ..core.dual_image_registration import DualImageRegistration
     from ..utils.utils import find_image_groups
 except ImportError:
     # Import assoluti (quando eseguito direttamente)
     from file_selector import FileSelector
     from project_manager import ProjectManager
     from image_viewer import ImageViewer
-    from dual_registration_window import DualRegistrationWindow
     from core.image_registration import ImageRegistration
+    from core.dual_image_registration import DualImageRegistration
     from utils.utils import find_image_groups
 
 
@@ -42,6 +42,7 @@ class MainWindow:
         # Managers
         self.project_manager = ProjectManager()
         self.image_registration = ImageRegistration()
+        self.dual_image_registration = DualImageRegistration()
         
         # Stato applicazione
         self.current_project_path = None
@@ -139,6 +140,36 @@ class MainWindow:
                                    textvariable=self.ref_band_var, width=5)
         ref_band_spin.grid(row=1, column=1, sticky="w", padx=(5, 0))
         
+        # Modalità elaborazione
+        ttk.Label(params_frame, text="Modalità:").grid(row=2, column=0, sticky="w")
+        self.processing_mode_var = tk.StringVar(value="multispectral")
+        mode_combo = ttk.Combobox(params_frame, textvariable=self.processing_mode_var,
+                                 values=["multispectral", "dual_registration"],
+                                 state="readonly", width=15)
+        mode_combo.grid(row=2, column=1, sticky="w", padx=(5, 0))
+        mode_combo.bind("<<ComboboxSelected>>", self.on_processing_mode_change)
+        
+        # Controlli specifici per dual registration (inizialmente nascosti)
+        self.dual_controls_frame = ttk.LabelFrame(self.processing_frame, text="Opzioni Dual Registration", padding=5)
+        
+        # Stima scala automatica
+        self.scale_estimation_var = tk.BooleanVar(value=True)
+        ttk.Checkbutton(self.dual_controls_frame, text="Stima scala automatica",
+                       variable=self.scale_estimation_var).grid(row=0, column=0, sticky="w", padx=5)
+        
+        # Migliora contrasto
+        self.enhance_contrast_var = tk.BooleanVar(value=True)
+        ttk.Checkbutton(self.dual_controls_frame, text="Migliora contrasto",
+                       variable=self.enhance_contrast_var).grid(row=0, column=1, sticky="w", padx=5)
+        
+        # Modalità visualizzazione
+        ttk.Label(self.dual_controls_frame, text="Visualizzazione:").grid(row=1, column=0, sticky="w", padx=5)
+        self.viz_mode_var = tk.StringVar(value="thermal_overlay")
+        viz_combo = ttk.Combobox(self.dual_controls_frame, textvariable=self.viz_mode_var,
+                                values=["thermal_overlay", "blend", "checkerboard", "side_by_side"],
+                                state="readonly", width=15)
+        viz_combo.grid(row=1, column=1, sticky="w", padx=(5, 0))
+        
         # Bottoni elaborazione
         buttons_frame = ttk.Frame(self.processing_frame)
         buttons_frame.pack(fill="x")
@@ -202,10 +233,6 @@ class MainWindow:
         menubar.add_cascade(label="Visualizza", menu=view_menu)
         view_menu.add_command(label="Apri Cartella Progetto", command=self.open_project_folder)
         
-        # Menu Strumenti
-        tools_menu = tk.Menu(menubar, tearoff=0)
-        menubar.add_cascade(label="Strumenti", menu=tools_menu)
-        tools_menu.add_command(label="Dual Image Registration", command=self.open_dual_registration)
         
         # Menu Aiuto
         help_menu = tk.Menu(menubar, tearoff=0)
@@ -222,6 +249,35 @@ class MainWindow:
 
         # Carica automaticamente la prima immagine nel visualizzatore
         self.load_first_image_in_viewer(selected_paths, selection_type)
+        
+        # Aggiorna modalità elaborazione se necessario
+        self.update_processing_mode_for_selection(selection_type)
+
+    def on_processing_mode_change(self, event=None):
+        """Gestisce il cambio di modalità elaborazione"""
+        mode = self.processing_mode_var.get()
+        
+        if mode == "dual_registration":
+            # Mostra controlli dual registration
+            self.dual_controls_frame.pack(fill="x", pady=(5, 0))
+            # Aggiorna testo del bottone
+            self.process_button.config(text="🔄 Registra Immagini")
+        else:
+            # Nascondi controlli dual registration
+            self.dual_controls_frame.pack_forget()
+            # Ripristina testo del bottone
+            self.process_button.config(text="🚀 Elabora Immagini")
+    
+    def update_processing_mode_for_selection(self, selection_type):
+        """Aggiorna automaticamente la modalità in base alla selezione"""
+        if selection_type == "dual_images":
+            # Passa automaticamente a dual registration mode
+            self.processing_mode_var.set("dual_registration")
+            self.on_processing_mode_change()
+        elif selection_type in ["multiple_files", "folder"] and self.processing_mode_var.get() == "dual_registration":
+            # Torna a multispectral se selezione non dual
+            self.processing_mode_var.set("multispectral")
+            self.on_processing_mode_change()
 
     def _group_selected_files(self, selected_paths):
         """
@@ -408,7 +464,14 @@ class MainWindow:
             
             # Ottieni file da elaborare
             selected_paths, selection_type = self.file_selector.get_selection()
+            processing_mode = self.processing_mode_var.get()
             
+            # Gestisci modalità dual registration
+            if processing_mode == "dual_registration" or selection_type == "dual_images":
+                self.process_dual_registration(selected_paths)
+                return
+            
+            # Modalità multispettrale standard
             if selection_type == "folder":
                 # Trova gruppi di immagini nella cartella
                 image_groups = find_image_groups(selected_paths[0])
@@ -476,6 +539,107 @@ class MainWindow:
         self.processing_active = False
         self.log("⏹️ Elaborazione interrotta")
     
+    def process_dual_registration(self, selected_paths):
+        """Elabora registrazione dual image"""
+        try:
+            if len(selected_paths) != 2:
+                self.log("❌ Dual registration richiede esattamente 2 immagini")
+                return
+            
+            self.log("🔄 Inizio dual registration...")
+            
+            # Configura dual registrator
+            self.dual_image_registration.registration_method = self.method_var.get()
+            self.dual_image_registration.scale_factor_estimation = self.scale_estimation_var.get()
+            self.dual_image_registration.enhance_contrast = self.enhance_contrast_var.get()
+            
+            # Imposta progress
+            self.root.after(0, lambda: self.progress_var.set(10))
+            
+            # Esegui registrazione
+            self.log(f"📷 Registrazione: {os.path.basename(selected_paths[0])} -> {os.path.basename(selected_paths[1])}")
+            result = self.dual_image_registration.register_images(selected_paths[0], selected_paths[1])
+            
+            self.root.after(0, lambda: self.progress_var.set(80))
+            
+            # Salva risultato
+            if result:
+                project_paths = self.project_manager.get_project_paths()
+                output_dir = project_paths["registered"]
+                
+                # Crea nome file output
+                ref_name = os.path.splitext(os.path.basename(selected_paths[0]))[0]
+                target_name = os.path.splitext(os.path.basename(selected_paths[1]))[0]
+                output_file = os.path.join(output_dir, f"dual_registration_{ref_name}_{target_name}.png")
+                
+                # Crea visualizzazione
+                overlay_image = self.dual_image_registration.create_overlay_visualization(
+                    result, self.viz_mode_var.get()
+                )
+                
+                # Salva
+                import matplotlib.pyplot as plt
+                if self.viz_mode_var.get() == 'thermal_overlay':
+                    plt.imsave(output_file, overlay_image)
+                else:
+                    plt.imsave(output_file, overlay_image, cmap='gray')
+                
+                # Salva metadati
+                metadata_file = os.path.splitext(output_file)[0] + "_metadata.txt"
+                with open(metadata_file, 'w') as f:
+                    f.write(f"Dual Image Registration Metadata\n")
+                    f.write(f"Reference: {selected_paths[0]}\n")
+                    f.write(f"Target: {selected_paths[1]}\n")
+                    f.write(f"Method: {result['method_used']}\n")
+                    f.write(f"Scale Factor: {result['scale_factor']:.4f}\n")
+                    f.write(f"Visualization: {self.viz_mode_var.get()}\n")
+                
+                self.log(f"✅ Dual registration completata")
+                self.log(f"📁 Risultato salvato: {output_file}")
+                
+                # Carica risultato nel visualizzatore
+                self.root.after(0, lambda: self.load_dual_registration_result(result))
+                
+                # Aggiorna metadata progetto
+                self.project_manager.add_processed_file(str(selected_paths), output_file)
+                
+            else:
+                self.log("❌ Dual registration fallita")
+            
+            self.root.after(0, lambda: self.progress_var.set(100))
+            
+        except Exception as e:
+            self.log(f"❌ Errore dual registration: {e}")
+            import traceback
+            traceback.print_exc()
+    
+    def load_dual_registration_result(self, result):
+        """Carica risultato dual registration nel visualizzatore"""
+        try:
+            # Crea visualizzazione overlay per il viewer
+            overlay_image = self.dual_image_registration.create_overlay_visualization(
+                result, self.viz_mode_var.get()
+            )
+            
+            # Determina colormap e titolo
+            viz_mode = self.viz_mode_var.get()
+            if viz_mode == 'thermal_overlay':
+                # Per thermal overlay, usa l'immagine RGB direttamente
+                self.image_viewer.display_array(overlay_image, 
+                                              title=f"Dual Registration - {viz_mode.replace('_', ' ').title()}")
+            else:
+                # Per altri modi, usa colormap gray
+                cmap = 'hot' if 'thermal' in viz_mode else 'gray'
+                self.image_viewer.display_array(overlay_image, 
+                                              title=f"Dual Registration - {viz_mode.replace('_', ' ').title()}", 
+                                              cmap=cmap)
+            
+            self.log("🖼️ Risultato caricato nel visualizzatore")
+        except Exception as e:
+            self.log(f"⚠️ Errore caricamento risultato: {e}")
+            import traceback
+            traceback.print_exc()
+    
     def processing_finished(self):
         """Chiamato al termine dell'elaborazione"""
         self.processing_active = False
@@ -516,15 +680,6 @@ class MainWindow:
         self.log_text.insert(tk.END, f"{message}\n")
         self.log_text.see(tk.END)
         self.root.update_idletasks()
-    
-    def open_dual_registration(self):
-        """Apre la finestra di dual image registration"""
-        try:
-            dual_window = DualRegistrationWindow(self.root)
-            self.log("Aperta finestra Dual Image Registration")
-        except Exception as e:
-            messagebox.showerror("Errore", f"Impossibile aprire Dual Registration:\n{e}")
-            self.log(f"Errore apertura Dual Registration: {e}")
     
     def show_about(self):
         """Mostra informazioni sull'applicazione"""

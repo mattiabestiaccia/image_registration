@@ -224,6 +224,61 @@ class ImageViewer:
             messagebox.showerror("Errore Caricamento", f"Impossibile caricare l'immagine:\n{e}")
             return False
     
+    def display_array(self, image_array: np.ndarray, title: str = "Array Image", cmap: str = 'gray'):
+        """
+        Visualizza un array numpy direttamente
+        
+        Args:
+            image_array: Array numpy dell'immagine
+            title: Titolo della visualizzazione
+            cmap: Colormap da usare ('gray', 'hot', etc.)
+        """
+        try:
+            # Pulisci display precedente
+            self.ax.clear()
+            
+            # Rimuovi colorbar precedente
+            if self.colorbar is not None:
+                self.colorbar.remove()
+                self.colorbar = None
+            
+            # Normalizza se necessario
+            if image_array.dtype != np.uint8:
+                if image_array.max() <= 1.0:
+                    # Già normalizzato 0-1
+                    display_array = (image_array * 255).astype(np.uint8)
+                else:
+                    # Normalizza
+                    display_array = ((image_array - image_array.min()) / 
+                                   (image_array.max() - image_array.min()) * 255).astype(np.uint8)
+            else:
+                display_array = image_array
+            
+            # Gestisci array RGB
+            if len(display_array.shape) == 3 and display_array.shape[2] == 3:
+                # Immagine RGB
+                im = self.ax.imshow(display_array)
+            else:
+                # Immagine grayscale
+                im = self.ax.imshow(display_array, cmap=cmap)
+                
+                # Aggiungi colorbar per immagini non RGB
+                if cmap != 'gray':
+                    self.colorbar = self.fig.colorbar(im, ax=self.ax)
+            
+            self.ax.set_title(title)
+            self.ax.axis('off')
+            
+            # Disabilita controlli multispettrali
+            self.set_controls_enabled(False)
+            
+            # Aggiorna canvas
+            self.fig.tight_layout()
+            self.canvas.draw()
+            
+        except Exception as e:
+            messagebox.showerror("Errore Visualizzazione", f"Impossibile visualizzare array:\n{e}")
+    
     def set_controls_enabled(self, enabled: bool):
         """Abilita/disabilita controlli"""
         state = "normal" if enabled else "disabled"

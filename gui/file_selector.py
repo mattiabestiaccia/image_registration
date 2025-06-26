@@ -29,7 +29,7 @@ class FileSelector:
         self.on_selection_change = on_selection_change
         self.on_file_double_click_callback = on_file_double_click
         self.selected_paths = []
-        self.selection_type = "none"  # "none", "single_file", "multiple_files", "folder"
+        self.selection_type = "none"  # "none", "single_file", "multiple_files", "folder", "dual_images"
 
         self.setup_ui()
     
@@ -60,6 +60,12 @@ class FileSelector:
             buttons_frame, 
             text="📁 Seleziona Cartella",
             command=self.select_folder
+        ).pack(side="left", padx=5)
+        
+        ttk.Button(
+            buttons_frame, 
+            text="🔄 Due Immagini",
+            command=self.select_dual_images
         ).pack(side="left", padx=5)
         
         ttk.Button(
@@ -129,6 +135,32 @@ class FileSelector:
             self.update_preview()
             self._notify_change()
     
+    def select_dual_images(self):
+        """Seleziona esattamente 2 immagini per registrazione"""
+        file_paths = filedialog.askopenfilenames(
+            title="Seleziona 2 Immagini per Registrazione",
+            filetypes=[
+                ("File immagine", "*.jpg *.jpeg *.png *.tif *.tiff"),
+                ("JPEG", "*.jpg *.jpeg"),
+                ("TIFF", "*.tif *.tiff"),
+                ("PNG", "*.png"),
+                ("Tutti i file", "*.*")
+            ]
+        )
+        
+        if file_paths:
+            if len(file_paths) != 2:
+                messagebox.showwarning(
+                    "Selezione Errata",
+                    f"Seleziona esattamente 2 immagini.\nHai selezionato {len(file_paths)} file."
+                )
+                return
+            
+            self.selected_paths = list(file_paths)
+            self.selection_type = "dual_images"
+            self.update_preview()
+            self._notify_change()
+    
     def select_folder(self):
         """Seleziona una cartella"""
         folder_path = filedialog.askdirectory(
@@ -192,6 +224,15 @@ class FileSelector:
             )
             for path in self.selected_paths:
                 self.files_listbox.insert(tk.END, os.path.basename(path))
+        
+        elif self.selection_type == "dual_images":
+            self.info_label.config(
+                text="Registrazione: 2 immagini selezionate", 
+                foreground="orange"
+            )
+            for i, path in enumerate(self.selected_paths):
+                label = "Riferimento" if i == 0 else "Target"
+                self.files_listbox.insert(tk.END, f"{label}: {os.path.basename(path)}")
                 
         elif self.selection_type == "folder":
             folder_path = self.selected_paths[0]
@@ -217,6 +258,11 @@ class FileSelector:
         if self.selection_type == "single_file":
             file_path = self.selected_paths[0]
         elif self.selection_type == "multiple_files":
+            if index < len(self.selected_paths):
+                file_path = self.selected_paths[index]
+            else:
+                return
+        elif self.selection_type == "dual_images":
             if index < len(self.selected_paths):
                 file_path = self.selected_paths[index]
             else:
