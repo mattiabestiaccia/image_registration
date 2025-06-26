@@ -55,6 +55,7 @@ class ProjectManager:
         (project_path / "registered").mkdir(exist_ok=True)
         (project_path / "visualizations").mkdir(exist_ok=True)
         (project_path / "exports").mkdir(exist_ok=True)
+        (project_path / "logs").mkdir(exist_ok=True)
 
         # Salva metadata
         metadata = {
@@ -133,8 +134,23 @@ class ProjectManager:
             "project": str(project_path),
             "registered": str(project_path / "registered"),
             "visualizations": str(project_path / "visualizations"),
-            "exports": str(project_path / "exports")
+            "exports": str(project_path / "exports"),
+            "logs": str(project_path / "logs")
         }
+    
+    def get_current_log_file_path(self) -> Optional[str]:
+        """Restituisce il percorso del file di log per la sessione corrente"""
+        if not self.current_project:
+            return None
+        
+        project_path = Path(self.current_project)
+        logs_dir = project_path / "logs"
+        
+        # Crea nome file con timestamp
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        log_filename = f"session_{timestamp}.log"
+        
+        return str(logs_dir / log_filename)
 
     def has_saved_content(self) -> bool:
         """Verifica se il progetto ha contenuto salvato"""

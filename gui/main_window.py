@@ -11,6 +11,7 @@ from tkinter import ttk, messagebox
 import threading
 import os
 from pathlib import Path
+from typing import Optional
 
 try:
     # Import relativi (quando usato come modulo)
@@ -20,6 +21,7 @@ try:
     from ..core.image_registration import ImageRegistration
     from ..core.dual_image_registration import DualImageRegistration
     from ..utils.utils import find_image_groups
+    from ..utils.project_logger import ProjectLogger, create_logger_for_project
 except ImportError:
     # Import assoluti (quando eseguito direttamente)
     from file_selector import FileSelector
@@ -28,6 +30,7 @@ except ImportError:
     from core.image_registration import ImageRegistration
     from core.dual_image_registration import DualImageRegistration
     from utils.utils import find_image_groups
+    from utils.project_logger import ProjectLogger, create_logger_for_project
 
 
 class MainWindow:
@@ -47,6 +50,9 @@ class MainWindow:
         # Stato applicazione
         self.current_project_path = None
         self.processing_active = False
+        
+        # Logger del progetto
+        self.project_logger: Optional[ProjectLogger] = None
         
         self.setup_ui()
         self.setup_menu()
@@ -404,12 +410,25 @@ class MainWindow:
             if "visualizations" in project_paths:
                 self.image_viewer.set_project_visualizations_dir(project_paths["visualizations"])
 
+            # Inizializza logger del progetto
+            self._initialize_project_logger()
+
             # Aggiorna UI
             self.update_project_info()
             self.log(f"✅ Progetto creato: {os.path.basename(project_path)}")
 
         except Exception as e:
-            messagebox.showerror("Errore", f"Impossibile creare progetto:\n{e}")
+            error_msg = f"Impossibile creare progetto: {e}"
+            self.log(f"❌ {error_msg}", "ERROR")
+            
+            # Log traceback completo se logger disponibile
+            if self.project_logger:
+                self.project_logger.exception(f"Errore creazione progetto: {e}")
+            else:
+                import traceback
+                traceback.print_exc()
+            
+            messagebox.showerror("Errore", error_msg)
     
     def update_project_info(self):
         """Aggiorna le informazioni del progetto"""
@@ -426,6 +445,37 @@ class MainWindow:
         
         self.project_info_label.config(text=info_text, foreground="blue")
         self.project_status_label.config(text=f"Progetto: {project_name}")
+    
+    def _initialize_project_logger(self):
+        """Inizializza il logger per il progetto corrente"""
+        try:
+            # Chiudi logger precedente se esistente
+            self._close_project_logger()
+            
+            # Crea nuovo logger
+            self.project_logger = create_logger_for_project(self.project_manager)
+            
+            if self.project_logger:
+                # Log informazioni del progetto
+                selected_paths, selection_type = self.file_selector.get_selection()
+                self.project_logger.log_operation_start("CREAZIONE_PROGETTO", {
+                    "nome_progetto": os.path.basename(self.current_project_path) if self.current_project_path else "N/A",
+                    "tipo_selezione": selection_type,
+                    "numero_file": len(selected_paths) if selected_paths else 0,
+                    "modalita_elaborazione": self.processing_mode_var.get()
+                })
+        except Exception as e:
+            # Non bloccare l'applicazione se il logging fallisce
+            print(f"Errore inizializzazione logger: {e}")
+    
+    def _close_project_logger(self):
+        """Chiude il logger del progetto corrente"""
+        if self.project_logger:
+            try:
+                self.project_logger.close()
+            except:
+                pass
+            self.project_logger = None
     
     def open_project_folder(self):
         """Apre la cartella del progetto corrente"""
@@ -529,7 +579,15 @@ class MainWindow:
             self.root.after(0, lambda: self.progress_var.set(100))
             
         except Exception as e:
-            self.log(f"❌ Errore elaborazione: {e}")
+            error_msg = f"❌ Errore elaborazione: {e}"
+            self.log(error_msg, "ERROR")
+            
+            # Log traceback completo se logger disponibile
+            if self.project_logger:
+                self.project_logger.exception(f"Errore durante elaborazione multispettrale: {e}")
+            else:
+                import traceback
+                traceback.print_exc()
         finally:
             # Ripristina UI
             self.root.after(0, self.processing_finished)
@@ -547,6 +605,17 @@ class MainWindow:
                 return
             
             self.log("🔄 Inizio dual registration...")
+            
+            # Log inizio operazione
+            if self.project_logger:
+                self.project_logger.log_operation_start("DUAL_REGISTRATION", {
+                    "immagine_riferimento": os.path.basename(selected_paths[0]),
+                    "immagine_target": os.path.basename(selected_paths[1]),
+                    "metodo": self.method_var.get(),
+                    "stima_scala": self.scale_estimation_var.get(),
+                    "migliora_contrasto": self.enhance_contrast_var.get(),
+                    "modalita_visualizzazione": self.viz_mode_var.get()
+                })
             
             # Configura dual registrator
             self.dual_image_registration.registration_method = self.method_var.get()
@@ -597,6 +666,15 @@ class MainWindow:
                 self.log(f"✅ Dual registration completata")
                 self.log(f"📁 Risultato salvato: {output_file}")
                 
+                # Log fine operazione successo
+                if self.project_logger:
+                    self.project_logger.log_operation_end("DUAL_REGISTRATION", True, {
+                        "metodo_usato": result['method_used'],
+                        "scala_stimata": f"{result['scale_factor']:.4f}",
+                        "file_output": output_file,
+                        "file_metadata": metadata_file
+                    })
+                
                 # Carica risultato nel visualizzatore
                 self.root.after(0, lambda: self.load_dual_registration_result(result))
                 
@@ -605,13 +683,25 @@ class MainWindow:
                 
             else:
                 self.log("❌ Dual registration fallita")
+                
+                # Log fine operazione fallita
+                if self.project_logger:
+                    self.project_logger.log_operation_end("DUAL_REGISTRATION", False, {
+                        "motivo": "Registrazione fallita"
+                    })
             
             self.root.after(0, lambda: self.progress_var.set(100))
             
         except Exception as e:
-            self.log(f"❌ Errore dual registration: {e}")
-            import traceback
-            traceback.print_exc()
+            error_msg = f"❌ Errore dual registration: {e}"
+            self.log(error_msg, "ERROR")
+            
+            # Log traceback completo se logger disponibile
+            if self.project_logger:
+                self.project_logger.exception(f"Errore durante dual registration: {e}")
+            else:
+                import traceback
+                traceback.print_exc()
     
     def load_dual_registration_result(self, result):
         """Carica risultato dual registration nel visualizzatore"""
@@ -636,9 +726,15 @@ class MainWindow:
             
             self.log("🖼️ Risultato caricato nel visualizzatore")
         except Exception as e:
-            self.log(f"⚠️ Errore caricamento risultato: {e}")
-            import traceback
-            traceback.print_exc()
+            error_msg = f"⚠️ Errore caricamento risultato: {e}"
+            self.log(error_msg, "ERROR")
+            
+            # Log traceback completo se logger disponibile
+            if self.project_logger:
+                self.project_logger.exception(f"Errore caricamento risultato dual registration: {e}")
+            else:
+                import traceback
+                traceback.print_exc()
     
     def processing_finished(self):
         """Chiamato al termine dell'elaborazione"""
@@ -675,11 +771,29 @@ class MainWindow:
             self.project_manager.add_visualization(file_path, visualization_type)
             self.log(f"💾 Visualizzazione salvata: {os.path.basename(file_path)}")
     
-    def log(self, message):
-        """Aggiunge messaggio al log"""
+    def log(self, message, level="INFO"):
+        """
+        Aggiunge messaggio al log (GUI e file)
+        
+        Args:
+            message: Messaggio da loggare
+            level: Livello di log (INFO, WARNING, ERROR)
+        """
+        # Log su GUI
         self.log_text.insert(tk.END, f"{message}\n")
         self.log_text.see(tk.END)
         self.root.update_idletasks()
+        
+        # Log su file se disponibile
+        if self.project_logger:
+            if level.upper() == "WARNING":
+                self.project_logger.warning(message)
+            elif level.upper() == "ERROR":
+                self.project_logger.error(message)
+            elif level.upper() == "DEBUG":
+                self.project_logger.debug(message)
+            else:
+                self.project_logger.info(message)
     
     def show_about(self):
         """Mostra informazioni sull'applicazione"""
@@ -699,6 +813,9 @@ algoritmi SLIC, feature matching e correlazione di fase."""
             if not messagebox.askokcancel("Elaborazione in corso", 
                                          "Elaborazione in corso. Vuoi davvero uscire?"):
                 return
+        
+        # Chiudi logger del progetto
+        self._close_project_logger()
         
         # Pulizia progetto vuoto
         if self.project_manager.current_project:
