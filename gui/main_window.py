@@ -17,6 +17,7 @@ try:
     from .file_selector import FileSelector
     from .project_manager import ProjectManager
     from .image_viewer import ImageViewer
+    from .dual_registration_window import DualRegistrationWindow
     from ..core.image_registration import ImageRegistration
     from ..utils.utils import find_image_groups
 except ImportError:
@@ -24,6 +25,7 @@ except ImportError:
     from file_selector import FileSelector
     from project_manager import ProjectManager
     from image_viewer import ImageViewer
+    from dual_registration_window import DualRegistrationWindow
     from core.image_registration import ImageRegistration
     from utils.utils import find_image_groups
 
@@ -199,6 +201,11 @@ class MainWindow:
         view_menu = tk.Menu(menubar, tearoff=0)
         menubar.add_cascade(label="Visualizza", menu=view_menu)
         view_menu.add_command(label="Apri Cartella Progetto", command=self.open_project_folder)
+        
+        # Menu Strumenti
+        tools_menu = tk.Menu(menubar, tearoff=0)
+        menubar.add_cascade(label="Strumenti", menu=tools_menu)
+        tools_menu.add_command(label="Dual Image Registration", command=self.open_dual_registration)
         
         # Menu Aiuto
         help_menu = tk.Menu(menubar, tearoff=0)
@@ -509,6 +516,15 @@ class MainWindow:
         self.log_text.insert(tk.END, f"{message}\n")
         self.log_text.see(tk.END)
         self.root.update_idletasks()
+    
+    def open_dual_registration(self):
+        """Apre la finestra di dual image registration"""
+        try:
+            dual_window = DualRegistrationWindow(self.root)
+            self.log("Aperta finestra Dual Image Registration")
+        except Exception as e:
+            messagebox.showerror("Errore", f"Impossibile aprire Dual Registration:\n{e}")
+            self.log(f"Errore apertura Dual Registration: {e}")
     
     def show_about(self):
         """Mostra informazioni sull'applicazione"""

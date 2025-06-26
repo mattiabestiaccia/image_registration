@@ -144,9 +144,10 @@ class ImageViewer:
     def load_image_dialog(self):
         """Apre dialog per caricare un'immagine"""
         file_path = filedialog.askopenfilename(
-            title="Carica Immagine TIFF",
+            title="Carica Immagine",
             filetypes=[
                 ("File TIFF", "*.tif *.tiff"),
+                ("File JPEG", "*.jpg *.jpeg"),
                 ("Tutti i file", "*.*")
             ]
         )
@@ -159,24 +160,46 @@ class ImageViewer:
         Carica un'immagine multispettrale
         
         Args:
-            file_path: Percorso del file TIFF
+            file_path: Percorso del file immagine (TIFF o JPG)
             
         Returns:
             True se caricamento riuscito
         """
         try:
-            # Carica immagine
-            self.bands_data = tifffile.imread(file_path)
+            # Determina il tipo di file
+            file_ext = os.path.splitext(file_path)[1].lower()
+            
+            if file_ext in ['.jpg', '.jpeg']:
+                # Per file JPG, carica come singola banda
+                from PIL import Image
+                with Image.open(file_path) as img:
+                    # Converti in grayscale se necessario
+                    if img.mode in ['RGB', 'RGBA']:
+                        img = img.convert('L')
+                    img_array = np.array(img).astype(np.float32)
+                    # Aggiungi dimensione banda
+                    self.bands_data = np.expand_dims(img_array, axis=0)
+            else:
+                # Per file TIFF, usa tifffile
+                self.bands_data = tifffile.imread(file_path)
+            
             self.current_file = file_path
             
             # Verifica formato
             if len(self.bands_data.shape) != 3:
-                messagebox.showerror("Errore", "Il file deve essere un TIFF multibanda")
+                if file_ext in ['.jpg', '.jpeg']:
+                    messagebox.showerror("Errore", "Errore nel caricamento del file JPG")
+                else:
+                    messagebox.showerror("Errore", "Il file deve essere un'immagine multibanda")
                 return False
             
             if self.bands_data.shape[0] != 5:
-                messagebox.showwarning("Attenzione", 
-                    f"Immagine con {self.bands_data.shape[0]} bande (attese 5)")
+                if file_ext in ['.jpg', '.jpeg']:
+                    messagebox.showinfo("Info", 
+                        f"File JPG caricato come singola banda")
+                else:
+                    messagebox.showwarning("Attenzione", 
+                        f"Immagine con {self.bands_data.shape[0]} bande (attese 5 per multispettrali)")
             
             # Reset visualizzazione
             self.current_band = 0

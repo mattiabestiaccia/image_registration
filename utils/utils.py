@@ -49,15 +49,32 @@ def find_image_groups(input_path: str) -> Dict[str, List[str]]:
         filename = os.path.basename(input_path)
         base_name = extract_base_name(filename)
         if base_name:
-            pattern = os.path.join(base_dir, f"{base_name}_*.tif")
-            files = sorted(glob.glob(pattern))
+            patterns = [
+                os.path.join(base_dir, f"{base_name}_*.tif"),
+                os.path.join(base_dir, f"{base_name}_*.jpg"),
+                os.path.join(base_dir, f"{base_name}_*.jpeg"),
+                os.path.join(base_dir, f"{base_name}_*.JPG"),
+                os.path.join(base_dir, f"{base_name}_*.JPEG")
+            ]
+            files = []
+            for pattern in patterns:
+                files.extend(glob.glob(pattern))
+            files = sorted(files)
             return {base_name: files}
         return {}
 
     elif os.path.isdir(input_path):
-        # Search for all .tif files in the folder
-        pattern = os.path.join(input_path, "IMG_*_*.tif")
-        all_files = glob.glob(pattern)
+        # Search for all .tif, .jpg, .jpeg files in the folder
+        patterns = [
+            os.path.join(input_path, "IMG_*_*.tif"),
+            os.path.join(input_path, "IMG_*_*.jpg"),
+            os.path.join(input_path, "IMG_*_*.jpeg"),
+            os.path.join(input_path, "IMG_*_*.JPG"),
+            os.path.join(input_path, "IMG_*_*.JPEG")
+        ]
+        all_files = []
+        for pattern in patterns:
+            all_files.extend(glob.glob(pattern))
 
         groups = {}
         for file_path in all_files:
@@ -87,16 +104,25 @@ def extract_base_name(filename: str) -> Optional[str]:
     Returns:
         Base name (e.g. IMG_1234) or None if doesn't match pattern
     """
-    pattern = r'(IMG_\d+)_\d+\.tif'
-    match = re.match(pattern, filename)
-    if match:
-        return match.group(1)
+    # Support multiple extensions: .tif, .jpg, .jpeg (case-insensitive)
+    patterns = [
+        r'(IMG_\d+)_\d+\.tif',
+        r'(IMG_\d+)_\d+\.jpg',
+        r'(IMG_\d+)_\d+\.jpeg',
+        r'(IMG_\d+)_\d+\.JPG',
+        r'(IMG_\d+)_\d+\.JPEG'
+    ]
+    
+    for pattern in patterns:
+        match = re.match(pattern, filename, re.IGNORECASE)
+        if match:
+            return match.group(1)
     return None
 
 
 def load_image_band(file_path: str) -> np.ndarray:
     """
-    Load a single band from TIFF file (legacy version without metadata)
+    Load a single band from image file (supports TIFF, JPG, JPEG)
 
     Args:
         file_path: File path
@@ -104,32 +130,47 @@ def load_image_band(file_path: str) -> np.ndarray:
     Returns:
         Numpy array of the image
     """
-    try:
-        # Try with tifffile first
-        img = tifffile.imread(file_path)
-        if img.ndim == 3 and img.shape[2] == 1:
-            img = img.squeeze(axis=2)
-        return img.astype(np.float32)
-    except Exception as e:
-        # Check for specific compression errors
-        if "imagecodecs" in str(e) or "COMPRESSION" in str(e):
-            raise ImportError(
-                f"Errore caricamento {file_path}: {e}\n"
-                "Installa imagecodecs per supportare file TIFF compressi:\n"
-                "pip install imagecodecs"
-            )
-
-        # Fallback with PIL for other errors
+    file_ext = os.path.splitext(file_path)[1].lower()
+    
+    # Handle TIFF files
+    if file_ext in ['.tif', '.tiff']:
         try:
-            img = Image.open(file_path)
-            img_array = np.array(img).astype(np.float32)
-            if img_array.ndim == 3 and img_array.shape[2] == 1:
-                img_array = img_array.squeeze(axis=2)
-            return img_array
-        except Exception as e2:
+            # Try with tifffile first for TIFF
+            img = tifffile.imread(file_path)
+            if img.ndim == 3 and img.shape[2] == 1:
+                img = img.squeeze(axis=2)
+            return img.astype(np.float32)
+        except Exception as e:
+            # Check for specific compression errors
+            if "imagecodecs" in str(e) or "COMPRESSION" in str(e):
+                raise ImportError(
+                    f"Errore caricamento {file_path}: {e}\n"
+                    "Installa imagecodecs per supportare file TIFF compressi:\n"
+                    "pip install imagecodecs"
+                )
+            # Fallback to PIL for TIFF
+            pass
+    
+    # Handle JPG/JPEG files or TIFF fallback with PIL
+    try:
+        img = Image.open(file_path)
+        # Convert to grayscale if it's a color image (for consistency with multispectral workflow)
+        if img.mode in ['RGB', 'RGBA']:
+            img = img.convert('L')
+        img_array = np.array(img).astype(np.float32)
+        if img_array.ndim == 3 and img_array.shape[2] == 1:
+            img_array = img_array.squeeze(axis=2)
+        return img_array
+    except Exception as e2:
+        if file_ext in ['.tif', '.tiff']:
             raise RuntimeError(
                 f"Impossibile caricare {file_path}:\n"
                 f"Errore tifffile: {e}\n"
+                f"Errore PIL: {e2}"
+            )
+        else:
+            raise RuntimeError(
+                f"Impossibile caricare {file_path}:\n"
                 f"Errore PIL: {e2}"
             )
 
@@ -207,7 +248,7 @@ def validate_image_group(file_paths: List[str]) -> bool:
     band_numbers = []
     for path in file_paths:
         filename = os.path.basename(path)
-        match = re.search(r'_(\d+)\.tif$', filename)
+        match = re.search(r'_(\d+)\.(tif|jpg|jpeg)$', filename, re.IGNORECASE)
         if match:
             band_numbers.append(int(match.group(1)))
 

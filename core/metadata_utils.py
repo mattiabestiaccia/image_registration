@@ -46,20 +46,119 @@ class MetadataManager:
         
         return float(degrees + minutes/60 + seconds/3600)
     
-    def extract_gps_coordinates(self, tiff_path: str) -> Dict[str, Any]:
+    def extract_gps_from_jpg(self, jpg_path: str) -> Dict[str, Any]:
         """
-        Estrae le coordinate GPS da un file TIFF.
-        Cerca prima nei tag rasterio, poi nei tag EXIF.
+        Estrae le coordinate GPS da un file JPG usando EXIF data.
         
         Args:
-            tiff_path: Percorso al file TIFF
+            jpg_path: Percorso al file JPG
             
         Returns:
             dict: Dizionario con latitudine, longitudine e altitudine
         """
-        # Prima prova con rasterio (per file processati)
         try:
-            with rasterio.open(tiff_path) as src:
+            from PIL import Image
+            from PIL.ExifTags import TAGS, GPSTAGS
+            
+            with Image.open(jpg_path) as img:
+                exif_data = img._getexif()
+                
+                if not exif_data:
+                    return {}
+                
+                gps_data = {}
+                
+                # Cerca i dati GPS nell'EXIF
+                for tag_id, value in exif_data.items():
+                    tag = TAGS.get(tag_id, tag_id)
+                    
+                    if tag == 'GPSInfo':
+                        for gps_tag_id, gps_value in value.items():
+                            gps_tag = GPSTAGS.get(gps_tag_id, gps_tag_id)
+                            
+                            if gps_tag == 'GPSLatitude':
+                                gps_data['latitude_raw'] = gps_value
+                            elif gps_tag == 'GPSLatitudeRef':
+                                gps_data['latitude_ref'] = gps_value
+                            elif gps_tag == 'GPSLongitude':
+                                gps_data['longitude_raw'] = gps_value
+                            elif gps_tag == 'GPSLongitudeRef':
+                                gps_data['longitude_ref'] = gps_value
+                            elif gps_tag == 'GPSAltitude':
+                                gps_data['altitude_raw'] = gps_value
+                            elif gps_tag == 'GPSAltitudeRef':
+                                gps_data['altitude_ref'] = gps_value
+                
+                # Converti i dati GPS in formato decimale
+                result = {}
+                
+                if 'latitude_raw' in gps_data and 'latitude_ref' in gps_data:
+                    lat_decimal = self._convert_gps_coordinate(gps_data['latitude_raw'])
+                    if gps_data['latitude_ref'] == 'S':
+                        lat_decimal = -lat_decimal
+                    result['latitude'] = lat_decimal
+                    result['latitude_ref'] = gps_data['latitude_ref']
+                
+                if 'longitude_raw' in gps_data and 'longitude_ref' in gps_data:
+                    lon_decimal = self._convert_gps_coordinate(gps_data['longitude_raw'])
+                    if gps_data['longitude_ref'] == 'W':
+                        lon_decimal = -lon_decimal
+                    result['longitude'] = lon_decimal
+                    result['longitude_ref'] = gps_data['longitude_ref']
+                
+                if 'altitude_raw' in gps_data:
+                    altitude = float(gps_data['altitude_raw'])
+                    if 'altitude_ref' in gps_data and gps_data['altitude_ref'] == 1:
+                        altitude = -altitude
+                    result['altitude'] = altitude
+                
+                if result:
+                    self.logger.info(f"GPS coordinates extracted from JPG EXIF in {os.path.basename(jpg_path)}")
+                    if 'latitude' in result and 'longitude' in result:
+                        self.logger.info(f"  Lat: {result['latitude']:.8f}, Lon: {result['longitude']:.8f}")
+                
+                return result
+                
+        except Exception as e:
+            self.logger.warning(f"Error extracting GPS from JPG {jpg_path}: {str(e)}")
+            return {}
+    
+    def _convert_gps_coordinate(self, coord_tuple):
+        """
+        Converte coordinate GPS dal formato EXIF (gradi, minuti, secondi) al formato decimale.
+        
+        Args:
+            coord_tuple: Tupla con (gradi, minuti, secondi) come frazioni
+            
+        Returns:
+            float: Coordinata in formato decimale
+        """
+        degrees = float(coord_tuple[0])
+        minutes = float(coord_tuple[1])
+        seconds = float(coord_tuple[2])
+        
+        return degrees + minutes/60 + seconds/3600
+    
+    def extract_gps_coordinates(self, file_path: str) -> Dict[str, Any]:
+        """
+        Estrae le coordinate GPS da un file immagine (TIFF o JPG).
+        Cerca prima nei tag rasterio, poi nei tag EXIF.
+        
+        Args:
+            file_path: Percorso al file immagine
+            
+        Returns:
+            dict: Dizionario con latitudine, longitudine e altitudine
+        """
+        file_ext = os.path.splitext(file_path)[1].lower()
+        
+        # For JPG files, use PIL/Pillow to extract EXIF data
+        if file_ext in ['.jpg', '.jpeg']:
+            return self.extract_gps_from_jpg(file_path)
+        
+        # Prima prova con rasterio (per file TIFF processati)
+        try:
+            with rasterio.open(file_path) as src:
                 tags = src.tags()
                 gps_data = {}
                 
@@ -79,17 +178,17 @@ class MetadataManager:
                     gps_data['dop'] = float(tags['GPS_DOP'])
                 
                 if gps_data:
-                    self.logger.info(f"GPS coordinates extracted from rasterio tags in {os.path.basename(tiff_path)}")
+                    self.logger.info(f"GPS coordinates extracted from rasterio tags in {os.path.basename(file_path)}")
                     if 'latitude' in gps_data and 'longitude' in gps_data:
                         self.logger.info(f"  Lat: {gps_data['latitude']:.8f}, Lon: {gps_data['longitude']:.8f}")
                     return gps_data
                     
         except Exception as e:
-            self.logger.debug(f"Rasterio GPS extraction failed for {tiff_path}: {str(e)}")
+            self.logger.debug(f"Rasterio GPS extraction failed for {file_path}: {str(e)}")
         
-        # Fallback: prova con tifffile (per file originali)
+        # Fallback: prova con tifffile (per file TIFF originali)
         try:
-            with tifffile.TiffFile(tiff_path) as tif:
+            with tifffile.TiffFile(file_path) as tif:
                 page = tif.pages[0]
                 
                 # Cerca il tag GPS
@@ -139,19 +238,19 @@ class MetadataManager:
                         gps_data['dop'] = float(Fraction(dop[0], dop[1]))
                 
                 if gps_data:
-                    self.logger.info(f"GPS coordinates extracted from EXIF tags in {os.path.basename(tiff_path)}")
+                    self.logger.info(f"GPS coordinates extracted from EXIF tags in {os.path.basename(file_path)}")
                     if 'latitude' in gps_data and 'longitude' in gps_data:
                         self.logger.info(f"  Lat: {gps_data['latitude']:.8f}, Lon: {gps_data['longitude']:.8f}")
                 
                 return gps_data
                 
         except Exception as e:
-            self.logger.warning(f"Error extracting GPS from {tiff_path}: {str(e)}")
+            self.logger.warning(f"Error extracting GPS from {file_path}: {str(e)}")
             return {}
 
     def extract_metadata(self, file_path: str) -> Dict[str, Any]:
         """
-        Extract all metadata from a geospatial TIFF file
+        Extract all metadata from a geospatial image file (TIFF or JPG)
 
         Args:
             file_path: File path
@@ -160,58 +259,106 @@ class MetadataManager:
             Dictionary with all metadata including GPS coordinates
         """
         metadata = {}
+        file_ext = os.path.splitext(file_path)[1].lower()
         
-        try:
-            with rasterio.open(file_path) as src:
+        # For JPG files, create minimal metadata structure
+        if file_ext in ['.jpg', '.jpeg']:
+            try:
+                from PIL import Image
+                with Image.open(file_path) as img:
+                    width, height = img.size
+                    metadata = {
+                        'crs': None,
+                        'transform': None,
+                        'width': width,
+                        'height': height,
+                        'count': 1,
+                        'dtype': 'uint8',
+                        'nodata': None,
+                        'compress': None,
+                        'tiled': False,
+                        'blockxsize': None,
+                        'blockysize': None,
+                        'tags': {},
+                        'descriptions': None,
+                        'units': None,
+                        'scales': None,
+                        'offsets': None,
+                        'colorinterp': None,
+                        'profile': {
+                            'driver': 'JPEG',
+                            'width': width,
+                            'height': height,
+                            'count': 1,
+                            'dtype': 'uint8'
+                        }
+                    }
+                    self.logger.info(f"JPG metadata extracted from {os.path.basename(file_path)}")
+                    self.logger.info(f"  Dimensions: {width}x{height}")
+            except Exception as e:
+                self.logger.warning(f"Unable to extract JPG metadata from {file_path}: {str(e)}")
+                # Fallback minimal metadata
                 metadata = {
-                    'crs': src.crs,
-                    'transform': src.transform,
-                    'width': src.width,
-                    'height': src.height,
-                    'count': src.count,
-                    'dtype': src.dtypes[0] if src.dtypes else 'float32',
-                    'nodata': src.nodata,
-                    'compress': src.compression.value if src.compression else None,
-                    'tiled': src.is_tiled,
-                    'blockxsize': src.block_shapes[0][1] if src.block_shapes else None,
-                    'blockysize': src.block_shapes[0][0] if src.block_shapes else None,
-                    'tags': src.tags(),
-                    'descriptions': src.descriptions,
-                    'units': src.units,
-                    'scales': src.scales,
-                    'offsets': src.offsets,
-                    'colorinterp': [ci.name for ci in src.colorinterp] if src.colorinterp else None,
-                    'profile': src.profile.copy()
+                    'crs': None, 'transform': None, 'width': None, 'height': None,
+                    'count': 1, 'dtype': 'uint8', 'nodata': None, 'compress': None,
+                    'tiled': False, 'blockxsize': None, 'blockysize': None,
+                    'tags': {}, 'descriptions': None, 'units': None,
+                    'scales': None, 'offsets': None, 'colorinterp': None,
+                    'profile': {'driver': 'JPEG', 'count': 1, 'dtype': 'uint8'}
                 }
+        else:
+            # For TIFF files, use rasterio
+            try:
+                with rasterio.open(file_path) as src:
+                    metadata = {
+                        'crs': src.crs,
+                        'transform': src.transform,
+                        'width': src.width,
+                        'height': src.height,
+                        'count': src.count,
+                        'dtype': src.dtypes[0] if src.dtypes else 'float32',
+                        'nodata': src.nodata,
+                        'compress': src.compression.value if src.compression else None,
+                        'tiled': src.is_tiled,
+                        'blockxsize': src.block_shapes[0][1] if src.block_shapes else None,
+                        'blockysize': src.block_shapes[0][0] if src.block_shapes else None,
+                        'tags': src.tags(),
+                        'descriptions': src.descriptions,
+                        'units': src.units,
+                        'scales': src.scales,
+                        'offsets': src.offsets,
+                        'colorinterp': [ci.name for ci in src.colorinterp] if src.colorinterp else None,
+                        'profile': src.profile.copy()
+                    }
                 
-                self.logger.info(f"Metadata estratti da {os.path.basename(file_path)}")
-                self.logger.info(f"  CRS: {metadata['crs']}")
-                self.logger.info(f"  Transform: {metadata['transform']}")
-                self.logger.info(f"  Dimensioni: {metadata['width']}x{metadata['height']}")
-                
-        except Exception as e:
-            self.logger.warning(f"Unable to extract metadata from {file_path}: {str(e)}")
-            # Fallback: metadati minimi
-            metadata = {
-                'crs': None,
-                'transform': None,
-                'width': None,
-                'height': None,
-                'count': 1,
-                'dtype': 'float32',
-                'nodata': None,
-                'compress': None,
-                'tiled': False,
-                'blockxsize': None,
-                'blockysize': None,
-                'tags': {},
-                'descriptions': None,
-                'units': None,
-                'scales': None,
-                'offsets': None,
-                'colorinterp': None,
-                'profile': {}
-            }
+                    self.logger.info(f"Metadata estratti da {os.path.basename(file_path)}")
+                    self.logger.info(f"  CRS: {metadata['crs']}")
+                    self.logger.info(f"  Transform: {metadata['transform']}")
+                    self.logger.info(f"  Dimensioni: {metadata['width']}x{metadata['height']}")
+                    
+            except Exception as e:
+                self.logger.warning(f"Unable to extract metadata from {file_path}: {str(e)}")
+                # Fallback: metadati minimi
+                metadata = {
+                    'crs': None,
+                    'transform': None,
+                    'width': None,
+                    'height': None,
+                    'count': 1,
+                    'dtype': 'float32',
+                    'nodata': None,
+                    'compress': None,
+                    'tiled': False,
+                    'blockxsize': None,
+                    'blockysize': None,
+                    'tags': {},
+                    'descriptions': None,
+                    'units': None,
+                    'scales': None,
+                    'offsets': None,
+                    'colorinterp': None,
+                    'profile': {}
+                }
         
         # Estrai coordinate GPS
         gps_data = self.extract_gps_coordinates(file_path)
@@ -221,7 +368,7 @@ class MetadataManager:
     
     def load_image_with_metadata(self, file_path: str) -> Tuple[np.ndarray, Dict[str, Any]]:
         """
-        Carica un'immagine preservando i metadati
+        Carica un'immagine preservando i metadati (supports TIFF and JPG)
 
         Args:
             file_path: File path
@@ -230,7 +377,24 @@ class MetadataManager:
             Tuple (immagine, metadati)
         """
         metadata = self.extract_metadata(file_path)
+        file_ext = os.path.splitext(file_path)[1].lower()
 
+        # For JPG files, use PIL/Pillow
+        if file_ext in ['.jpg', '.jpeg']:
+            try:
+                from PIL import Image
+                with Image.open(file_path) as img:
+                    # Convert to grayscale if it's a color image (for consistency with multispectral workflow)
+                    if img.mode in ['RGB', 'RGBA']:
+                        img = img.convert('L')
+                    image = np.array(img).astype(np.float32)
+                    if image.ndim == 3 and image.shape[2] == 1:
+                        image = image.squeeze(axis=2)
+                return image, metadata
+            except Exception as e:
+                raise RuntimeError(f"Impossibile caricare JPG {file_path}: {e}")
+
+        # For TIFF files, try rasterio first, then tifffile fallback
         try:
             with rasterio.open(file_path) as src:
                 # Leggi la prima banda (assumiamo immagini single-band)
